@@ -21,6 +21,13 @@ O projeto foi criado para substituir a visualizacao nativa do dashboard/widget d
 
 Abra `index.html` no navegador da TV ou publique o projeto em um servidor web interno.
 
+## Estrutura
+
+- `index.html`: estrutura da pagina.
+- `styles.css`: estilos do painel.
+- `app.js`: integracao com o Zabbix e comportamento da interface.
+- `backups/index-completo-2026-07-08.html`: copia autocontida anterior a separacao.
+
 Na primeira abertura, informe:
 
 - URL da API do Zabbix, por exemplo `http://192.168.0.7/zabbix/api_jsonrpc.php`
@@ -29,7 +36,7 @@ Na primeira abertura, informe:
 - Periodo de busca
 - IDs de grupos ou hosts, se quiser limitar o escopo
 
-As configuracoes ficam salvas apenas no `localStorage` do navegador. Nao coloque tokens diretamente no codigo antes de publicar o repositorio.
+As configuracoes ficam salvas apenas no `localStorage` do navegador. Nao coloque tokens diretamente no codigo antes de publicar o repositório.
 
 ## Modo demo
 
@@ -53,4 +60,4 @@ Este projeto e estatico. Pode ser publicado em:
 - IIS, Nginx ou Apache interno
 - Qualquer servidor que entregue arquivos HTML/CSS/JS
 
-Se publicar via GitHub Pages, mantenha o repositorio privado caso o painel seja apenas interno.
+Se publicar via GitHub Pages, mantenha o repositório privado caso o painel seja apenas interno.
