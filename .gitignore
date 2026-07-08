@@ -1,0 +1,15 @@
+# Sistema
+Thumbs.db
+Desktop.ini
+
+# Logs e temporarios
+*.log
+*.tmp
+*.temp
+
+# Dependencias futuras
+node_modules/
+
+# Configuracoes locais opcionais
+.env
+.env.*
