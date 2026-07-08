@@ -8,7 +8,6 @@
       PAGE_INTERVAL_SECONDS: 15,
       SORT_MODE: "recent",
       FETCH_MODE: "incidents",
-      PERIOD_DAYS: 7,
       SEVERITIES: [2, 3, 4, 5],
       MONITORED_GROUP_IDS: [],
       MONITORED_HOST_IDS: []
@@ -25,7 +24,6 @@
       loading: false,
       error: null,
       lastRefreshAt: null,
-      nextRefreshAt: null,
       refreshTimer: null,
       pageTimer: null,
       currentPage: 0
@@ -39,26 +37,11 @@
     };
 
     const sortModeLabel = {
-      recent: "mais recentes",
-      severity: "criticidade",
-      duration: "duracao",
-      client: "cliente",
-      problem: "problema"
-    };
-
-    const fetchModeLabel = {
-      incidents: "incidentes ativos",
-      problems: "todos problemas ativos"
-    };
-
-    const periodLabel = {
-      7: "7 dias",
-      14: "14 dias",
-      30: "30 dias",
-      60: "2 meses",
-      90: "3 meses",
-      180: "6 meses",
-      365: "1 ano"
+      recent: "Mais recentes",
+      severity: "Criticidade",
+      duration: "Duracao",
+      client: "Cliente",
+      problem: "Problema"
     };
 
     const elements = {
@@ -82,7 +65,6 @@
       problemList: document.getElementById("problemList"),
       sortButtons: document.querySelectorAll("[data-sort-mode]"),
       footerStatus: document.getElementById("footerStatus"),
-      refreshProgress: document.getElementById("refreshProgress"),
       settingsDrawer: document.getElementById("settingsDrawer"),
       settingsForm: document.getElementById("settingsForm"),
       closeSettings: document.getElementById("closeSettings")
@@ -114,7 +96,6 @@
           ),
           SORT_MODE: ["recent", "severity", "duration", "client", "problem"].includes(migratedSortMode) ? migratedSortMode : DEFAULT_CONFIG.SORT_MODE,
           FETCH_MODE: ["incidents", "problems"].includes(saved.FETCH_MODE) ? saved.FETCH_MODE : DEFAULT_CONFIG.FETCH_MODE,
-          PERIOD_DAYS: [7, 14, 30, 60, 90, 180, 365].includes(Number(saved.PERIOD_DAYS)) ? Number(saved.PERIOD_DAYS) : DEFAULT_CONFIG.PERIOD_DAYS,
           SEVERITIES: DEFAULT_CONFIG.SEVERITIES,
           MONITORED_GROUP_IDS: Array.isArray(saved.MONITORED_GROUP_IDS) ? saved.MONITORED_GROUP_IDS : [],
           MONITORED_HOST_IDS: Array.isArray(saved.MONITORED_HOST_IDS) ? saved.MONITORED_HOST_IDS : []
@@ -214,8 +195,7 @@
         const rootProblems = state.config.FETCH_MODE === "incidents"
           ? problems.filter(problem => isRootCauseEvent(problem.cause_eventid))
           : problems;
-        const periodProblems = rootProblems.filter(problem => isProblemInsidePeriod(problem));
-        const triggerIds = [...new Set(periodProblems.map(problem => String(problem.objectid)).filter(Boolean))];
+        const triggerIds = [...new Set(rootProblems.map(problem => String(problem.objectid)).filter(Boolean))];
 
         let triggerMap = new Map();
         let hostMap = new Map();
@@ -246,12 +226,11 @@
           }
         }
 
-        const monitoredProblems = periodProblems.filter(problem => isProblemMonitored(problem, triggerMap, hostMap));
-        state.ignoredInactiveCount = periodProblems.length - monitoredProblems.length;
+        const monitoredProblems = rootProblems.filter(problem => isProblemMonitored(problem, triggerMap, hostMap));
+        state.ignoredInactiveCount = rootProblems.length - monitoredProblems.length;
         state.problems = monitoredProblems.map(problem => normalizeProblem(problem, triggerMap, hostMap));
         state.problems.sort(sortProblems);
         state.lastRefreshAt = new Date();
-        state.nextRefreshAt = new Date(Date.now() + Number(state.config.REFRESH_SECONDS) * 1000);
         render();
       } catch (error) {
         console.error(error);
@@ -369,19 +348,6 @@
       return hasNonZeroValue(problem.r_eventid) || hasNonZeroValue(problem.r_clock);
     }
 
-    function isProblemInsidePeriod(problem) {
-      const cutoff = getPeriodCutoffSeconds();
-      const clock = Number(problem.clock) || 0;
-      const rClock = Number(problem.r_clock ?? problem.rClock) || 0;
-
-      return clock >= cutoff || rClock >= cutoff;
-    }
-
-    function getPeriodCutoffSeconds() {
-      const days = Number(state.config.PERIOD_DAYS) || DEFAULT_CONFIG.PERIOD_DAYS;
-      return Math.floor(Date.now() / 1000) - days * 86400;
-    }
-
     function hasNonZeroValue(value) {
       return value !== undefined &&
         value !== null &&
@@ -479,15 +445,9 @@
       elements.statusPill.textContent = total > 0 ? "Em alerta" : "Operacional";
       elements.statusPill.classList.toggle("alerting", total > 0);
       const sortLabel = sortModeLabel[state.config.SORT_MODE] || sortModeLabel.severity;
-      const fetchLabel = fetchModeLabel[state.config.FETCH_MODE] || fetchModeLabel.incidents;
-      const currentPeriodLabel = periodLabel[state.config.PERIOD_DAYS] || `${state.config.PERIOD_DAYS} dias`;
       const pagination = getPaginationState(total);
-      const pageLabel = pagination.totalPages > 1
-        ? ` - pagina ${pagination.currentPage + 1}/${pagination.totalPages}`
-        : "";
-      elements.panelSubtitle.textContent = total === 1
-        ? `1 evento - periodo: ${currentPeriodLabel} - escopo: ${fetchLabel} - ordenando por ${sortLabel}${pageLabel}`
-        : `${total} eventos - periodo: ${currentPeriodLabel} - escopo: ${fetchLabel} - ordenando por ${sortLabel}${pageLabel}`;
+      elements.panelSubtitle.textContent =
+        `Ordenacao: ${sortLabel} | Pagina ${pagination.currentPage + 1} de ${pagination.totalPages}`;
     }
 
     function setCardNote(element, count) {
@@ -673,11 +633,9 @@
         state.problems = [...state.problems, ...extraProblems];
       }
 
-      state.problems = state.problems.filter(problem => isProblemInsidePeriod(problem));
       state.ignoredInactiveCount = 0;
       state.problems.sort(sortProblems);
       state.lastRefreshAt = new Date();
-      state.nextRefreshAt = new Date(Date.now() + Number(state.config.REFRESH_SECONDS) * 1000);
       elements.settingsDrawer.classList.remove("open");
       render();
       elements.footerStatus.textContent += " - modo demo";
@@ -685,15 +643,7 @@
 
     function renderFooter() {
       if (!state.lastRefreshAt) return;
-
-      const sortLabel = sortModeLabel[state.config.SORT_MODE] || sortModeLabel.severity;
-      const fetchLabel = fetchModeLabel[state.config.FETCH_MODE] || fetchModeLabel.incidents;
-      const currentPeriodLabel = periodLabel[state.config.PERIOD_DAYS] || `${state.config.PERIOD_DAYS} dias`;
-      const ignoredText = state.ignoredInactiveCount > 0
-        ? ` - ignorados inativos: ${state.ignoredInactiveCount}`
-        : "";
-      elements.footerStatus.textContent =
-        `Atualizado em ${state.lastRefreshAt.toLocaleString("pt-BR")} - ${state.problems.length} evento(s) - periodo: ${currentPeriodLabel} - ${fetchLabel} - ordenacao: ${sortLabel}${ignoredText} - refresh ${state.config.REFRESH_SECONDS}s`;
+      elements.footerStatus.textContent = `Sincronizado ${state.lastRefreshAt.toLocaleTimeString("pt-BR")}`;
     }
 
     function countBySeverity(problems) {
@@ -750,19 +700,6 @@
       const now = new Date();
       elements.clockTime.textContent = now.toLocaleTimeString("pt-BR");
       elements.clockDate.textContent = now.toLocaleDateString("pt-BR");
-      updateRefreshProgress();
-    }
-
-    function updateRefreshProgress() {
-      if (!state.lastRefreshAt || !state.nextRefreshAt) {
-        elements.refreshProgress.style.width = "0%";
-        return;
-      }
-
-      const total = state.nextRefreshAt - state.lastRefreshAt;
-      const elapsed = Date.now() - state.lastRefreshAt;
-      const percent = Math.max(0, Math.min(100, (elapsed / total) * 100));
-      elements.refreshProgress.style.width = `${percent}%`;
     }
 
     function formatEventTime(clock) {
@@ -825,13 +762,6 @@
       return Math.max(min, Math.min(max, number));
     }
 
-    function clampPeriodDays(value) {
-      const days = Number(value);
-      return [7, 14, 30, 60, 90, 180, 365].includes(days)
-        ? days
-        : DEFAULT_CONFIG.PERIOD_DAYS;
-    }
-
     function openSettings() {
       fillSettingsForm();
       elements.settingsDrawer.classList.add("open");
@@ -851,7 +781,6 @@
       form.pageIntervalSeconds.value = state.config.PAGE_INTERVAL_SECONDS;
       form.sortMode.value = state.config.SORT_MODE;
       form.fetchMode.value = state.config.FETCH_MODE;
-      form.periodDays.value = state.config.PERIOD_DAYS;
       form.groupIds.value = state.config.MONITORED_GROUP_IDS.join(", ");
       form.hostIds.value = state.config.MONITORED_HOST_IDS.join(", ");
     }
@@ -905,7 +834,6 @@
         ),
         SORT_MODE: form.sortMode.value,
         FETCH_MODE: form.fetchMode.value,
-        PERIOD_DAYS: clampPeriodDays(form.periodDays.value),
         MONITORED_GROUP_IDS: parseIds(form.groupIds.value),
         MONITORED_HOST_IDS: parseIds(form.hostIds.value)
       });

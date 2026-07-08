@@ -34,7 +34,6 @@ Na primeira abertura, informe:
 - URL da API do Zabbix, por exemplo `http://192.168.0.7/zabbix/api_jsonrpc.php`
 - Token de API do Zabbix
 - Intervalo de atualizacao
-- Periodo de busca
 - IDs de grupos ou hosts, se quiser limitar o escopo
 
 As configuracoes ficam salvas apenas no `localStorage` do navegador. Nao coloque tokens diretamente no codigo antes de publicar o repositório.

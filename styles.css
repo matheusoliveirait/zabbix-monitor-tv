@@ -107,7 +107,7 @@
       color: var(--info);
       font-size: clamp(13px, 1.1vw, 18px);
       line-height: 1;
-      font-weight: 900;
+      font-weight: 700;
       letter-spacing: 0.14em;
       text-transform: uppercase;
     }
@@ -116,7 +116,7 @@
       margin: 8px 0 0;
       font-size: clamp(30px, 3.6vw, 58px);
       line-height: 0.95;
-      font-weight: 950;
+      font-weight: 800;
       letter-spacing: 0;
       white-space: nowrap;
       overflow: hidden;
@@ -137,7 +137,7 @@
     .clock-time {
       font-size: clamp(30px, 3.1vw, 50px);
       line-height: 0.95;
-      font-weight: 950;
+      font-weight: 800;
       font-variant-numeric: tabular-nums;
     }
 
@@ -145,7 +145,7 @@
       margin-top: 7px;
       color: var(--muted);
       font-size: clamp(14px, 1.2vw, 20px);
-      font-weight: 800;
+      font-weight: 600;
     }
 
     .icon-button {
@@ -236,7 +236,7 @@
       color: var(--muted);
       font-size: clamp(13px, 1.12vw, 19px);
       line-height: 1;
-      font-weight: 900;
+      font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       white-space: nowrap;
@@ -250,7 +250,7 @@
       margin-top: 4px;
       font-size: clamp(46px, 5.1vw, 84px);
       line-height: 0.85;
-      font-weight: 950;
+      font-weight: 900;
       font-variant-numeric: tabular-nums;
     }
 
@@ -260,7 +260,7 @@
       margin-top: 4px;
       color: var(--muted);
       font-size: clamp(12px, 1vw, 17px);
-      font-weight: 750;
+      font-weight: 550;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -269,7 +269,7 @@
     .incidents {
       min-height: 0;
       display: grid;
-      grid-template-rows: clamp(62px, 8.4vh, 78px) clamp(42px, 5.6vh, 58px) minmax(0, 1fr);
+      grid-template-rows: clamp(54px, 7vh, 64px) clamp(42px, 5.6vh, 58px) minmax(0, 1fr);
       overflow: hidden;
     }
 
@@ -290,17 +290,17 @@
 
     .panel-title h2 {
       margin: 0;
-      font-size: clamp(24px, 2.4vw, 40px);
+      font-size: clamp(22px, 2vw, 32px);
       line-height: 1;
-      font-weight: 950;
+      font-weight: 800;
       letter-spacing: 0;
     }
 
     .panel-subtitle {
-      margin-top: 7px;
+      margin-top: 4px;
       color: var(--muted);
-      font-size: clamp(14px, 1.15vw, 19px);
-      font-weight: 760;
+      font-size: clamp(12px, 0.95vw, 15px);
+      font-weight: 500;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -309,7 +309,7 @@
     .status-pill {
       flex: 0 0 auto;
       min-width: 184px;
-      height: 44px;
+      height: 40px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -318,8 +318,8 @@
       border: 1px solid rgba(34, 197, 94, 0.38);
       color: #bff7d0;
       background: rgba(34, 197, 94, 0.12);
-      font-size: clamp(14px, 1.15vw, 20px);
-      font-weight: 950;
+      font-size: clamp(13px, 1vw, 17px);
+      font-weight: 750;
       text-transform: uppercase;
       letter-spacing: 0.05em;
       white-space: nowrap;
@@ -345,7 +345,7 @@
       background: rgba(10, 16, 23, 0.72);
       color: var(--muted);
       font-size: clamp(14px, 1.12vw, 19px);
-      font-weight: 900;
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.08em;
     }
@@ -483,7 +483,7 @@
       border-radius: 8px;
       color: #fff;
       font-size: clamp(17px, 1.5vw, 25px);
-      font-weight: 950;
+      font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.04em;
       white-space: nowrap;
@@ -494,7 +494,7 @@
     .event-time {
       color: var(--info);
       font-size: clamp(18px, 1.42vw, 25px);
-      font-weight: 950;
+      font-weight: 700;
       font-variant-numeric: tabular-nums;
       white-space: nowrap;
       overflow: hidden;
@@ -512,7 +512,7 @@
       padding: 0 12px;
       border-radius: 8px;
       font-size: clamp(14px, 1.14vw, 20px);
-      font-weight: 950;
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.04em;
       white-space: nowrap;
@@ -557,7 +557,7 @@
       min-width: 0;
       font-size: clamp(22px, 2vw, 34px);
       line-height: 1.12;
-      font-weight: 950;
+      font-weight: 700;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -569,7 +569,7 @@
       color: var(--muted);
       font-size: clamp(15px, 1.28vw, 22px);
       line-height: 1.16;
-      font-weight: 760;
+      font-weight: 500;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -579,7 +579,7 @@
       min-width: 0;
       font-size: clamp(22px, 1.95vw, 34px);
       line-height: 1.12;
-      font-weight: 900;
+      font-weight: 650;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
@@ -590,7 +590,7 @@
       justify-self: end;
       color: #dbeafe;
       font-size: clamp(24px, 2.3vw, 40px);
-      font-weight: 950;
+      font-weight: 750;
       font-variant-numeric: tabular-nums;
       white-space: nowrap;
     }
@@ -610,7 +610,7 @@
     .setup-title {
       font-size: clamp(42px, 4.8vw, 78px);
       line-height: 0.95;
-      font-weight: 950;
+      font-weight: 800;
       letter-spacing: 0;
     }
 
@@ -634,7 +634,7 @@
       color: var(--muted);
       font-size: clamp(20px, 1.75vw, 30px);
       line-height: 1.28;
-      font-weight: 760;
+      font-weight: 500;
     }
 
     .footer {
@@ -645,7 +645,7 @@
       gap: 16px;
       color: var(--muted-2);
       font-size: 14px;
-      font-weight: 760;
+      font-weight: 500;
     }
 
     .footer-status {
@@ -653,23 +653,6 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-    }
-
-    .progress {
-      justify-self: end;
-      width: min(340px, 32vw);
-      height: 8px;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      background: #111923;
-      overflow: hidden;
-    }
-
-    .progress span {
-      display: block;
-      width: 0%;
-      height: 100%;
-      background: linear-gradient(90deg, var(--info), var(--ok));
     }
 
     .drawer-backdrop {
@@ -712,7 +695,7 @@
     .drawer-title {
       margin: 0;
       font-size: 22px;
-      font-weight: 950;
+      font-weight: 750;
     }
 
     .drawer-body {
@@ -732,7 +715,7 @@
     .field label {
       color: var(--muted);
       font-size: 12px;
-      font-weight: 900;
+      font-weight: 650;
       text-transform: uppercase;
       letter-spacing: 0.07em;
     }
@@ -777,7 +760,7 @@
       color: var(--text);
       cursor: pointer;
       font-size: 14px;
-      font-weight: 900;
+      font-weight: 700;
     }
 
     .action.primary {
