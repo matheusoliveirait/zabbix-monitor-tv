@@ -749,6 +749,49 @@
       background: var(--ok);
     }
 
+    @media (max-height: 820px) and (min-width: 821px) {
+      .topbar {
+        gap: 20px;
+        padding: 7px 16px;
+      }
+
+      .brand {
+        gap: 14px;
+      }
+
+      .eyebrow {
+        font-size: clamp(13px, 1vw, 16px);
+      }
+
+      h1 {
+        margin-top: 4px;
+        font-size: clamp(28px, 3vw, 48px);
+      }
+
+      .top-right {
+        gap: 10px;
+      }
+
+      .clock {
+        min-width: 180px;
+      }
+
+      .clock-time {
+        font-size: clamp(28px, 2.8vw, 46px);
+      }
+
+      .clock-date {
+        margin-top: 3px;
+        font-size: clamp(13px, 1vw, 17px);
+        line-height: 1;
+      }
+
+      .icon-button {
+        width: clamp(40px, 3.4vw, 48px);
+        height: clamp(40px, 3.4vw, 48px);
+      }
+    }
+
     @media (max-width: 1180px) {
       .tv {
         grid-template-rows: 92px 150px minmax(0, 1fr) 30px;
