@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HPro TV - Monitoramento Zabbix</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="tv">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M3 12h4l2-6 4 12 2-6h6" />
+          </svg>
+        </div>
+        <div>
+          <div class="eyebrow">HPro NOC</div>
+          <h1>Monitoramento de Infraestrutura</h1>
+        </div>
+      </div>
+
+      <div class="top-right">
+        <div class="clock">
+          <div class="clock-time" id="clockTime">--:--:--</div>
+          <div class="clock-date" id="clockDate">--/--/----</div>
+        </div>
+        <button class="icon-button" id="refreshButton" type="button" title="Atualizar agora" aria-label="Atualizar agora">
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="M21 12a9 9 0 0 1-15.4 6.4L3 16" />
+            <path d="M3 21v-5h5" />
+            <path d="M3 12A9 9 0 0 1 18.4 5.6L21 8" />
+            <path d="M21 3v5h-5" />
+          </svg>
+        </button>
+        <button class="icon-button" id="settingsButton" type="button" title="Configurar API" aria-label="Configurar API">
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
+            <path d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.06.06a2.1 2.1 0 1 1-2.97 2.97l-.06-.06a1.8 1.8 0 0 0-1.98-.36 1.8 1.8 0 0 0-1.1 1.65V21a2.1 2.1 0 1 1-4.2 0v-.09a1.8 1.8 0 0 0-1.18-1.65 1.8 1.8 0 0 0-1.98.36l-.06.06a2.1 2.1 0 1 1-2.97-2.97l.06-.06A1.8 1.8 0 0 0 4.6 15a1.8 1.8 0 0 0-1.65-1.1H2.8a2.1 2.1 0 1 1 0-4.2h.09A1.8 1.8 0 0 0 4.54 8.5a1.8 1.8 0 0 0-.36-1.98l-.06-.06a2.1 2.1 0 1 1 2.97-2.97l.06.06a1.8 1.8 0 0 0 1.98.36h.08A1.8 1.8 0 0 0 10.4 2.3V2.1a2.1 2.1 0 1 1 4.2 0v.09a1.8 1.8 0 0 0 1.1 1.65 1.8 1.8 0 0 0 1.98-.36l.06-.06a2.1 2.1 0 1 1 2.97 2.97l-.06.06a1.8 1.8 0 0 0-.36 1.98v.08a1.8 1.8 0 0 0 1.65 1.1h.16a2.1 2.1 0 1 1 0 4.2h-.09A1.8 1.8 0 0 0 19.4 15Z" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <section class="summary" aria-label="Resumo operacional">
+      <article class="card total-card" id="totalCard">
+        <div class="card-label">Incidentes ativos</div>
+        <div class="card-number" id="totalProblems">0</div>
+        <div class="card-note" id="totalNote">Aguardando dados</div>
+      </article>
+
+      <article class="card" data-severity="5">
+        <div class="card-label">Desastre</div>
+        <div class="card-number" id="countDisaster">0</div>
+        <div class="card-note" id="noteDisaster">Sem incidente</div>
+      </article>
+
+      <article class="card" data-severity="4">
+        <div class="card-label">Alta</div>
+        <div class="card-number" id="countHigh">0</div>
+        <div class="card-note" id="noteHigh">Sem incidente</div>
+      </article>
+
+      <article class="card" data-severity="3">
+        <div class="card-label">Media</div>
+        <div class="card-number" id="countAverage">0</div>
+        <div class="card-note" id="noteAverage">Sem incidente</div>
+      </article>
+
+      <article class="card" data-severity="2">
+        <div class="card-label">Atencao</div>
+        <div class="card-number" id="countWarning">0</div>
+        <div class="card-note" id="noteWarning">Sem incidente</div>
+      </article>
+    </section>
+
+    <main class="incidents">
+      <div class="panel-head">
+        <div class="panel-title">
+          <h2>Incidentes ativos</h2>
+          <div class="panel-subtitle" id="panelSubtitle">Aguardando atualizacao</div>
+        </div>
+        <div class="status-pill" id="statusPill">Sem dados</div>
+      </div>
+
+      <div class="table-head">
+        <button class="sort-button" type="button" data-sort-mode="recent">Hora</button>
+        <button class="sort-button" type="button" data-sort-mode="severity">Criticidade</button>
+        <button class="sort-button" type="button" data-sort-mode="client">Cliente / Host</button>
+        <button class="sort-button" type="button" data-sort-mode="problem">Problema</button>
+        <button class="sort-button" type="button" data-sort-mode="duration">Duracao</button>
+      </div>
+
+      <div class="problem-list" id="problemList"></div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-status" id="footerStatus">Aguardando configuracao</div>
+      <div>&copy; 2026 HPro</div>
+      <div class="progress" aria-hidden="true"><span id="refreshProgress"></span></div>
+    </footer>
+  </div>
+
+  <div class="drawer-backdrop" id="settingsDrawer" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <form class="drawer" id="settingsForm">
+      <div class="drawer-head">
+        <h2 class="drawer-title" id="settingsTitle">Configuracao Zabbix</h2>
+      </div>
+      <div class="drawer-body">
+        <div class="field">
+          <label for="apiUrl">URL da API</label>
+          <input id="apiUrl" name="apiUrl" type="url" required placeholder="http://servidor/zabbix/api_jsonrpc.php" />
+        </div>
+        <div class="field">
+          <label for="apiToken">Token de API</label>
+          <input id="apiToken" name="apiToken" type="password" autocomplete="off" placeholder="Cole o token aqui" />
+        </div>
+        <div class="field">
+          <label for="refreshSeconds">Atualizacao em segundos</label>
+          <input id="refreshSeconds" name="refreshSeconds" type="number" min="5" max="900" step="5" required />
+        </div>
+        <div class="field">
+          <label for="apiLimit">Limite da API</label>
+          <input id="apiLimit" name="apiLimit" type="number" min="20" max="5000" step="10" required />
+        </div>
+        <div class="field">
+          <label for="maxRows">Linhas visiveis antes da rolagem</label>
+          <input id="maxRows" name="maxRows" type="number" min="3" max="12" step="1" required />
+        </div>
+        <div class="field">
+          <label for="sortMode">Ordenacao dos incidentes</label>
+          <select id="sortMode" name="sortMode" required>
+            <option value="recent">Mais recentes</option>
+            <option value="severity">Criticidade primeiro</option>
+            <option value="duration">Duracao primeiro</option>
+            <option value="client">Cliente / host</option>
+            <option value="problem">Problema</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="fetchMode">Escopo da consulta</label>
+          <select id="fetchMode" name="fetchMode" required>
+            <option value="incidents">Incidentes ativos</option>
+            <option value="problems">Todos os problemas ativos</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="periodDays">Periodo</label>
+          <select id="periodDays" name="periodDays" required>
+            <option value="7">7 dias</option>
+            <option value="14">14 dias</option>
+            <option value="30">30 dias</option>
+            <option value="60">2 meses</option>
+            <option value="90">3 meses</option>
+            <option value="180">6 meses</option>
+            <option value="365">1 ano</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="groupIds">IDs de grupos</label>
+          <input id="groupIds" name="groupIds" type="text" placeholder="12, 15, 18" />
+        </div>
+        <div class="field">
+          <label for="hostIds">IDs de hosts</label>
+          <input id="hostIds" name="hostIds" type="text" placeholder="10084, 10120" />
+        </div>
+        <p class="hint">Use um token do mesmo usuario que ve o dashboard atual. Se o widget do Zabbix nao filtra grupos ou hosts, deixe estes campos vazios.</p>
+      </div>
+      <div class="drawer-foot">
+        <button class="action" id="closeSettings" type="button">Cancelar</button>
+        <button class="action primary" type="submit">Salvar</button>
+      </div>
+    </form>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
