@@ -60,6 +60,7 @@
       noteHigh: document.getElementById("noteHigh"),
       noteAverage: document.getElementById("noteAverage"),
       noteWarning: document.getElementById("noteWarning"),
+      pageTitle: document.getElementById("pageTitle"),
       panelSubtitle: document.getElementById("panelSubtitle"),
       statusPill: document.getElementById("statusPill"),
       problemList: document.getElementById("problemList"),
@@ -446,8 +447,10 @@
       elements.statusPill.classList.toggle("alerting", total > 0);
       const sortLabel = sortModeLabel[state.config.SORT_MODE] || sortModeLabel.severity;
       const pagination = getPaginationState(total);
-      elements.panelSubtitle.textContent =
-        `Ordenacao: ${sortLabel} | Pagina ${pagination.currentPage + 1} de ${pagination.totalPages}`;
+      elements.pageTitle.textContent = total > 0
+        ? `- Pagina ${pagination.currentPage + 1}/${pagination.totalPages}`
+        : "";
+      elements.panelSubtitle.textContent = `Ordenacao: ${sortLabel}`;
     }
 
     function setCardNote(element, count) {
@@ -461,8 +464,8 @@
         elements.problemList.innerHTML = `
           <div class="empty">
             <div>
-              <div class="empty-title">Nenhum incidente ativo</div>
-              <div class="empty-sub">Todos os ambientes monitorados estao operando normalmente.</div>
+              <div class="empty-title">Tudo operacional</div>
+              <div class="empty-sub">Nenhum incidente ativo no momento.</div>
             </div>
           </div>
         `;
@@ -472,7 +475,7 @@
       const pagination = getPaginationState(problems.length);
       const pageStart = pagination.currentPage * pagination.pageSize;
       const visibleProblems = problems.slice(pageStart, pageStart + pagination.pageSize);
-      elements.problemList.classList.toggle("compact", problems.length >= pagination.pageSize);
+      elements.problemList.classList.toggle("compact", problems.length >= 5);
       const rowHeight = calculateRowHeight(visibleProblems.length);
       elements.problemList.style.setProperty("--row-height", rowHeight);
       elements.problemList.innerHTML = visibleProblems.map(problem => `
@@ -509,8 +512,9 @@
       const panel = elements.problemList.getBoundingClientRect();
       const pageSize = Math.max(1, Number(state.config.PAGE_SIZE));
       const effectiveRows = Math.max(1, Math.min(rowCount || pageSize, pageSize));
-      const minimumHeight = effectiveRows >= pageSize ? 56 : 84;
-      return Math.max(minimumHeight, Math.floor(panel.height / effectiveRows));
+      const minimumHeight = effectiveRows >= 5 ? 56 : 84;
+      const availableHeight = Math.floor(panel.height / effectiveRows);
+      return Math.max(minimumHeight, Math.min(140, availableHeight));
     }
 
     function getPaginationState(totalItems) {
@@ -631,6 +635,14 @@
         });
 
         state.problems = [...state.problems, ...extraProblems];
+      }
+
+      if (DEMO_VARIANT === "single") {
+        state.problems = state.problems.slice(0, 1);
+      }
+
+      if (DEMO_VARIANT === "empty") {
+        state.problems = [];
       }
 
       state.ignoredInactiveCount = 0;
