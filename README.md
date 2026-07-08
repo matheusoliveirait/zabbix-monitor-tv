@@ -14,6 +14,7 @@ O projeto foi criado para substituir a visualizacao nativa do dashboard/widget d
 - Cards compactos para TV: Incidentes ativos, Desastre, Alta, Media e Atencao.
 - Rodape rotativo no card principal com total, clientes afetados, maior duracao e resolvidos recentes.
 - Ordenacao clicavel por hora, criticidade, cliente/host, problema e duracao.
+- Paginacao automatica em grupos de 6 incidentes, com intervalo configuravel.
 - Indicador NOVO para incidentes com menos de 10 minutos.
 - Modo demo para validar layout sem conectar no Zabbix.
 

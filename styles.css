@@ -432,17 +432,56 @@
       background: rgba(17, 27, 39, 0.86);
     }
 
+    .problem-list.compact .problem-row {
+      padding-top: 4px;
+      padding-bottom: 4px;
+    }
+
+    .problem-list.compact .severity-badge {
+      height: 40px;
+      font-size: clamp(16px, 1.25vw, 21px);
+    }
+
+    .problem-list.compact .event-time {
+      font-size: clamp(17px, 1.25vw, 22px);
+    }
+
+    .problem-list.compact .status-badge {
+      height: 36px;
+      font-size: clamp(13px, 1vw, 17px);
+    }
+
+    .problem-list.compact .primary,
+    .problem-list.compact .problem-name {
+      font-size: clamp(19px, 1.55vw, 27px);
+      line-height: 1.05;
+    }
+
+    .problem-list.compact .problem-name {
+      -webkit-line-clamp: 1;
+    }
+
+    .problem-list.compact .secondary {
+      margin-top: 2px;
+      font-size: clamp(13px, 1.05vw, 18px);
+      line-height: 1.05;
+    }
+
+    .problem-list.compact .duration {
+      font-size: clamp(21px, 1.9vw, 32px);
+    }
+
     .severity-badge {
-      width: fit-content;
-      max-width: 100%;
-      min-width: 142px;
+      width: 100%;
+      max-width: 142px;
+      min-width: 0;
       height: 48px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       padding: 0 14px;
       border-radius: 8px;
-      color: #111827;
+      color: #fff;
       font-size: clamp(17px, 1.5vw, 25px);
       font-weight: 950;
       text-transform: uppercase;
@@ -494,12 +533,10 @@
     }
 
     .severity-badge.sev-5 {
-      color: #fff;
       background: var(--disaster);
     }
 
     .severity-badge.sev-4 {
-      color: #fff;
       background: var(--high);
     }
 

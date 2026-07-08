@@ -4,7 +4,8 @@
       CONFIG_VERSION: 6,
       REFRESH_SECONDS: 10,
       API_LIMIT: 500,
-      MAX_ROWS: 6,
+      PAGE_SIZE: 6,
+      PAGE_INTERVAL_SECONDS: 15,
       SORT_MODE: "recent",
       FETCH_MODE: "incidents",
       PERIOD_DAYS: 7,
@@ -25,7 +26,9 @@
       error: null,
       lastRefreshAt: null,
       nextRefreshAt: null,
-      refreshTimer: null
+      refreshTimer: null,
+      pageTimer: null,
+      currentPage: 0
     };
 
     const severityMap = {
@@ -102,7 +105,13 @@
           CONFIG_VERSION: DEFAULT_CONFIG.CONFIG_VERSION,
           REFRESH_SECONDS: clampNumber(migratedRefreshSeconds, 5, 900, DEFAULT_CONFIG.REFRESH_SECONDS),
           API_LIMIT: clampNumber(saved.API_LIMIT, 20, 5000, DEFAULT_CONFIG.API_LIMIT),
-          MAX_ROWS: clampNumber(saved.MAX_ROWS, 3, 12, DEFAULT_CONFIG.MAX_ROWS),
+          PAGE_SIZE: DEFAULT_CONFIG.PAGE_SIZE,
+          PAGE_INTERVAL_SECONDS: clampNumber(
+            saved.PAGE_INTERVAL_SECONDS,
+            5,
+            120,
+            DEFAULT_CONFIG.PAGE_INTERVAL_SECONDS
+          ),
           SORT_MODE: ["recent", "severity", "duration", "client", "problem"].includes(migratedSortMode) ? migratedSortMode : DEFAULT_CONFIG.SORT_MODE,
           FETCH_MODE: ["incidents", "problems"].includes(saved.FETCH_MODE) ? saved.FETCH_MODE : DEFAULT_CONFIG.FETCH_MODE,
           PERIOD_DAYS: [7, 14, 30, 60, 90, 180, 365].includes(Number(saved.PERIOD_DAYS)) ? Number(saved.PERIOD_DAYS) : DEFAULT_CONFIG.PERIOD_DAYS,
@@ -472,9 +481,13 @@
       const sortLabel = sortModeLabel[state.config.SORT_MODE] || sortModeLabel.severity;
       const fetchLabel = fetchModeLabel[state.config.FETCH_MODE] || fetchModeLabel.incidents;
       const currentPeriodLabel = periodLabel[state.config.PERIOD_DAYS] || `${state.config.PERIOD_DAYS} dias`;
+      const pagination = getPaginationState(total);
+      const pageLabel = pagination.totalPages > 1
+        ? ` - pagina ${pagination.currentPage + 1}/${pagination.totalPages}`
+        : "";
       elements.panelSubtitle.textContent = total === 1
-        ? `1 evento - periodo: ${currentPeriodLabel} - escopo: ${fetchLabel} - ordenando por ${sortLabel}`
-        : `${total} eventos - periodo: ${currentPeriodLabel} - escopo: ${fetchLabel} - ordenando por ${sortLabel}`;
+        ? `1 evento - periodo: ${currentPeriodLabel} - escopo: ${fetchLabel} - ordenando por ${sortLabel}${pageLabel}`
+        : `${total} eventos - periodo: ${currentPeriodLabel} - escopo: ${fetchLabel} - ordenando por ${sortLabel}${pageLabel}`;
     }
 
     function setCardNote(element, count) {
@@ -483,6 +496,8 @@
 
     function renderList(problems) {
       if (problems.length === 0) {
+        state.currentPage = 0;
+        elements.problemList.classList.remove("compact");
         elements.problemList.innerHTML = `
           <div class="empty">
             <div>
@@ -494,10 +509,13 @@
         return;
       }
 
-      const previousScrollTop = elements.problemList.scrollTop;
-      const rowHeight = calculateRowHeight(problems.length);
+      const pagination = getPaginationState(problems.length);
+      const pageStart = pagination.currentPage * pagination.pageSize;
+      const visibleProblems = problems.slice(pageStart, pageStart + pagination.pageSize);
+      elements.problemList.classList.toggle("compact", problems.length >= pagination.pageSize);
+      const rowHeight = calculateRowHeight(visibleProblems.length);
       elements.problemList.style.setProperty("--row-height", rowHeight);
-      elements.problemList.innerHTML = problems.map(problem => `
+      elements.problemList.innerHTML = visibleProblems.map(problem => `
         <div class="problem-row ${problem.status === "RESOLVIDO" ? "resolved" : "incident"}">
           <div class="event-time">${formatEventTime(problem.clock)}</div>
           <div class="severity-badge sev-${problem.severity}">${severityMap[problem.severity] || "N/D"}</div>
@@ -513,11 +531,7 @@
           <div class="duration">${formatDuration(problem.clock, problem.rClock)}</div>
         </div>
       `).join("");
-
-      elements.problemList.scrollTop = Math.min(
-        previousScrollTop,
-        elements.problemList.scrollHeight - elements.problemList.clientHeight
-      );
+      elements.problemList.scrollTop = 0;
     }
 
     function updateSortButtons() {
@@ -533,9 +547,22 @@
 
     function calculateRowHeight(rowCount) {
       const panel = elements.problemList.getBoundingClientRect();
-      const maxRows = Math.max(1, Number(state.config.MAX_ROWS));
-      const effectiveRows = Math.max(1, Math.min(rowCount || maxRows, maxRows));
-      return Math.max(84, Math.floor(panel.height / effectiveRows));
+      const pageSize = Math.max(1, Number(state.config.PAGE_SIZE));
+      const effectiveRows = Math.max(1, Math.min(rowCount || pageSize, pageSize));
+      const minimumHeight = effectiveRows >= pageSize ? 56 : 84;
+      return Math.max(minimumHeight, Math.floor(panel.height / effectiveRows));
+    }
+
+    function getPaginationState(totalItems) {
+      const pageSize = Math.max(1, Number(state.config.PAGE_SIZE) || DEFAULT_CONFIG.PAGE_SIZE);
+      const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+      state.currentPage = Math.min(Math.max(0, state.currentPage), totalPages - 1);
+
+      return {
+        pageSize,
+        totalPages,
+        currentPage: state.currentPage
+      };
     }
 
     function renderError(error) {
@@ -821,7 +848,7 @@
       form.apiToken.value = state.config.ZABBIX_TOKEN || "";
       form.refreshSeconds.value = state.config.REFRESH_SECONDS;
       form.apiLimit.value = state.config.API_LIMIT;
-      form.maxRows.value = state.config.MAX_ROWS;
+      form.pageIntervalSeconds.value = state.config.PAGE_INTERVAL_SECONDS;
       form.sortMode.value = state.config.SORT_MODE;
       form.fetchMode.value = state.config.FETCH_MODE;
       form.periodDays.value = state.config.PERIOD_DAYS;
@@ -837,6 +864,27 @@
       state.refreshTimer = setInterval(loadProblems, Math.max(5, Number(state.config.REFRESH_SECONDS)) * 1000);
     }
 
+    function schedulePageRotation() {
+      if (state.pageTimer) {
+        clearInterval(state.pageTimer);
+      }
+
+      const intervalSeconds = clampNumber(
+        state.config.PAGE_INTERVAL_SECONDS,
+        5,
+        120,
+        DEFAULT_CONFIG.PAGE_INTERVAL_SECONDS
+      );
+
+      state.pageTimer = setInterval(() => {
+        const pagination = getPaginationState(state.problems.length);
+        if (pagination.totalPages <= 1 || document.hidden) return;
+
+        state.currentPage = (state.currentPage + 1) % pagination.totalPages;
+        render();
+      }, intervalSeconds * 1000);
+    }
+
     elements.settingsForm.addEventListener("submit", event => {
       event.preventDefault();
       const form = elements.settingsForm;
@@ -848,7 +896,13 @@
         CONFIG_VERSION: DEFAULT_CONFIG.CONFIG_VERSION,
         REFRESH_SECONDS: clampNumber(form.refreshSeconds.value, 5, 900, DEFAULT_CONFIG.REFRESH_SECONDS),
         API_LIMIT: clampNumber(form.apiLimit.value, 20, 5000, DEFAULT_CONFIG.API_LIMIT),
-        MAX_ROWS: clampNumber(form.maxRows.value, 3, 12, DEFAULT_CONFIG.MAX_ROWS),
+        PAGE_SIZE: DEFAULT_CONFIG.PAGE_SIZE,
+        PAGE_INTERVAL_SECONDS: clampNumber(
+          form.pageIntervalSeconds.value,
+          5,
+          120,
+          DEFAULT_CONFIG.PAGE_INTERVAL_SECONDS
+        ),
         SORT_MODE: form.sortMode.value,
         FETCH_MODE: form.fetchMode.value,
         PERIOD_DAYS: clampPeriodDays(form.periodDays.value),
@@ -857,6 +911,8 @@
       });
 
       scheduleAutoRefresh();
+      schedulePageRotation();
+      state.currentPage = 0;
       closeSettings();
       loadProblems();
     });
@@ -875,6 +931,7 @@
         });
 
         state.problems.sort(sortProblems);
+        state.currentPage = 0;
         render();
       });
     });
@@ -894,5 +951,6 @@
     updateClock();
     renderSetup();
     scheduleAutoRefresh();
+    schedulePageRotation();
     loadProblems();
     setInterval(updateClock, 1000);
