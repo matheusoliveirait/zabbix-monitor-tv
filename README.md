@@ -10,6 +10,7 @@ O projeto substitui a visualizacao nativa do dashboard/widget do Zabbix em uma t
 - Backend PHP para proteger o token do Zabbix.
 - Banco MySQL/MariaDB para usuarios e configuracoes.
 - Login administrativo para configurar o painel.
+- Bloqueia acesso ao painel e as APIs quando nao ha login ativo.
 - Filtra severidades Atencao, Media, Alta e Desastre.
 - Ignora sintomas quando o modo de incidentes esta ativo.
 - Ignora triggers, hosts e itens desativados.
@@ -86,6 +87,8 @@ Na TV, use o IP da maquina onde esta o XAMPP:
 ```text
 http://IP_DO_SERVIDOR/hpro-tv/
 ```
+
+Sem login ativo, o painel redireciona para `admin.html`.
 
 ## Configuracao do Zabbix
 
