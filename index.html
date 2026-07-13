@@ -26,20 +26,23 @@
           <div class="clock-time" id="clockTime">--:--:--</div>
           <div class="clock-date" id="clockDate">--/--/----</div>
         </div>
-        <button class="icon-button" id="refreshButton" type="button" title="Atualizar agora" aria-label="Atualizar agora">
-          <svg class="icon" viewBox="0 0 24 24">
-            <path d="M21 12a9 9 0 0 1-15.4 6.4L3 16" />
-            <path d="M3 21v-5h5" />
-            <path d="M3 12A9 9 0 0 1 18.4 5.6L21 8" />
-            <path d="M21 3v5h-5" />
-          </svg>
-        </button>
-        <button class="icon-button" id="settingsButton" type="button" title="Configurar API" aria-label="Configurar API">
-          <svg class="icon" viewBox="0 0 24 24">
-            <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
-            <path d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.06.06a2.1 2.1 0 1 1-2.97 2.97l-.06-.06a1.8 1.8 0 0 0-1.98-.36 1.8 1.8 0 0 0-1.1 1.65V21a2.1 2.1 0 1 1-4.2 0v-.09a1.8 1.8 0 0 0-1.18-1.65 1.8 1.8 0 0 0-1.98.36l-.06.06a2.1 2.1 0 1 1-2.97-2.97l.06-.06A1.8 1.8 0 0 0 4.6 15a1.8 1.8 0 0 0-1.65-1.1H2.8a2.1 2.1 0 1 1 0-4.2h.09A1.8 1.8 0 0 0 4.54 8.5a1.8 1.8 0 0 0-.36-1.98l-.06-.06a2.1 2.1 0 1 1 2.97-2.97l.06.06a1.8 1.8 0 0 0 1.98.36h.08A1.8 1.8 0 0 0 10.4 2.3V2.1a2.1 2.1 0 1 1 4.2 0v.09a1.8 1.8 0 0 0 1.1 1.65 1.8 1.8 0 0 0 1.98-.36l.06-.06a2.1 2.1 0 1 1 2.97 2.97l-.06.06a1.8 1.8 0 0 0-.36 1.98v.08a1.8 1.8 0 0 0 1.65 1.1h.16a2.1 2.1 0 1 1 0 4.2h-.09A1.8 1.8 0 0 0 19.4 15Z" />
-          </svg>
-        </button>
+        <div class="header-hint">F2 configuracoes</div>
+        <div class="utility-actions">
+          <button class="icon-button" id="refreshButton" type="button" title="Atualizar agora" aria-label="Atualizar agora">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M21 12a9 9 0 0 1-15.4 6.4L3 16" />
+              <path d="M3 21v-5h5" />
+              <path d="M3 12A9 9 0 0 1 18.4 5.6L21 8" />
+              <path d="M21 3v5h-5" />
+            </svg>
+          </button>
+          <button class="icon-button" id="settingsButton" type="button" title="Configurar API" aria-label="Configurar API">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
+              <path d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.06.06a2.1 2.1 0 1 1-2.97 2.97l-.06-.06a1.8 1.8 0 0 0-1.98-.36 1.8 1.8 0 0 0-1.1 1.65V21a2.1 2.1 0 1 1-4.2 0v-.09a1.8 1.8 0 0 0-1.18-1.65 1.8 1.8 0 0 0-1.98.36l-.06.06a2.1 2.1 0 1 1-2.97-2.97l.06-.06A1.8 1.8 0 0 0 4.6 15a1.8 1.8 0 0 0-1.65-1.1H2.8a2.1 2.1 0 1 1 0-4.2h.09A1.8 1.8 0 0 0 4.54 8.5a1.8 1.8 0 0 0-.36-1.98l-.06-.06a2.1 2.1 0 1 1 2.97-2.97l.06.06a1.8 1.8 0 0 0 1.98.36h.08A1.8 1.8 0 0 0 10.4 2.3V2.1a2.1 2.1 0 1 1 4.2 0v.09a1.8 1.8 0 0 0 1.1 1.65 1.8 1.8 0 0 0 1.98-.36l.06-.06a2.1 2.1 0 1 1 2.97 2.97l-.06.06a1.8 1.8 0 0 0-.36 1.98v.08a1.8 1.8 0 0 0 1.65 1.1h.16a2.1 2.1 0 1 1 0 4.2h-.09A1.8 1.8 0 0 0 19.4 15Z" />
+            </svg>
+          </button>
+        </div>
       </div>
     </header>
 
@@ -87,7 +90,6 @@
       <div class="table-head">
         <button class="sort-button" type="button" data-sort-mode="recent">Hora</button>
         <button class="sort-button" type="button" data-sort-mode="severity">Criticidade</button>
-        <div>Status</div>
         <button class="sort-button" type="button" data-sort-mode="client">Cliente / Host</button>
         <button class="sort-button" type="button" data-sort-mode="problem">Problema</button>
         <button class="sort-button" type="button" data-sort-mode="duration">Duracao</button>
@@ -162,6 +164,7 @@
     </form>
   </div>
 
+  <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
