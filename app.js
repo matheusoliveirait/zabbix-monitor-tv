@@ -16,6 +16,7 @@
     const STORAGE_KEY = "hpro-zabbix-tv-panel-config-v2";
     const DEMO_VARIANT = new URLSearchParams(window.location.search).get("demo");
     const DEMO_MODE = DEMO_VARIANT !== null;
+    const FILE_CONFIG = getFileConfig();
 
     const state = {
       config: loadConfig(),
@@ -45,6 +46,7 @@
     };
 
     const elements = {
+      tv: document.querySelector(".tv"),
       clockTime: document.getElementById("clockTime"),
       clockDate: document.getElementById("clockDate"),
       refreshButton: document.getElementById("refreshButton"),
@@ -74,36 +76,65 @@
     function loadConfig() {
       try {
         const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+        const baseConfig = { ...DEFAULT_CONFIG, ...FILE_CONFIG, ...saved };
         const savedVersion = Number(saved.CONFIG_VERSION || 0);
         const migratedRefreshSeconds = saved.CONFIG_VERSION
-          ? saved.REFRESH_SECONDS
-          : Math.min(Number(saved.REFRESH_SECONDS || DEFAULT_CONFIG.REFRESH_SECONDS), DEFAULT_CONFIG.REFRESH_SECONDS);
+          ? baseConfig.REFRESH_SECONDS
+          : Math.min(Number(baseConfig.REFRESH_SECONDS || DEFAULT_CONFIG.REFRESH_SECONDS), DEFAULT_CONFIG.REFRESH_SECONDS);
         const migratedSortMode = savedVersion >= DEFAULT_CONFIG.CONFIG_VERSION
-          ? saved.SORT_MODE
+          ? baseConfig.SORT_MODE
           : DEFAULT_CONFIG.SORT_MODE;
+        const forceFileConfig = FILE_CONFIG.FORCE_FILE_CONFIG === true;
 
         return {
-          ...DEFAULT_CONFIG,
-          ...saved,
+          ...baseConfig,
+          ZABBIX_API_URL: pickConfigValue(saved, FILE_CONFIG, "ZABBIX_API_URL", DEFAULT_CONFIG.ZABBIX_API_URL, forceFileConfig),
+          ZABBIX_TOKEN: pickConfigValue(saved, FILE_CONFIG, "ZABBIX_TOKEN", DEFAULT_CONFIG.ZABBIX_TOKEN, forceFileConfig),
           CONFIG_VERSION: DEFAULT_CONFIG.CONFIG_VERSION,
           REFRESH_SECONDS: clampNumber(migratedRefreshSeconds, 5, 900, DEFAULT_CONFIG.REFRESH_SECONDS),
-          API_LIMIT: clampNumber(saved.API_LIMIT, 20, 5000, DEFAULT_CONFIG.API_LIMIT),
+          API_LIMIT: clampNumber(baseConfig.API_LIMIT, 20, 5000, DEFAULT_CONFIG.API_LIMIT),
           PAGE_SIZE: DEFAULT_CONFIG.PAGE_SIZE,
           PAGE_INTERVAL_SECONDS: clampNumber(
-            saved.PAGE_INTERVAL_SECONDS,
+            baseConfig.PAGE_INTERVAL_SECONDS,
             5,
             120,
             DEFAULT_CONFIG.PAGE_INTERVAL_SECONDS
           ),
           SORT_MODE: ["recent", "severity", "duration", "client", "problem"].includes(migratedSortMode) ? migratedSortMode : DEFAULT_CONFIG.SORT_MODE,
-          FETCH_MODE: ["incidents", "problems"].includes(saved.FETCH_MODE) ? saved.FETCH_MODE : DEFAULT_CONFIG.FETCH_MODE,
+          FETCH_MODE: ["incidents", "problems"].includes(baseConfig.FETCH_MODE) ? baseConfig.FETCH_MODE : DEFAULT_CONFIG.FETCH_MODE,
           SEVERITIES: DEFAULT_CONFIG.SEVERITIES,
-          MONITORED_GROUP_IDS: Array.isArray(saved.MONITORED_GROUP_IDS) ? saved.MONITORED_GROUP_IDS : [],
-          MONITORED_HOST_IDS: Array.isArray(saved.MONITORED_HOST_IDS) ? saved.MONITORED_HOST_IDS : []
+          MONITORED_GROUP_IDS: pickConfigArray(saved, FILE_CONFIG, "MONITORED_GROUP_IDS", forceFileConfig),
+          MONITORED_HOST_IDS: pickConfigArray(saved, FILE_CONFIG, "MONITORED_HOST_IDS", forceFileConfig)
         };
       } catch {
-        return { ...DEFAULT_CONFIG };
+        return { ...DEFAULT_CONFIG, ...FILE_CONFIG };
       }
+    }
+
+    function getFileConfig() {
+      const config = window.HPRO_CONFIG && typeof window.HPRO_CONFIG === "object"
+        ? window.HPRO_CONFIG
+        : {};
+
+      return { ...config };
+    }
+
+    function pickConfigValue(saved, fileConfig, key, fallback, forceFileConfig) {
+      if (forceFileConfig && hasValue(fileConfig[key])) return fileConfig[key];
+      if (hasValue(saved[key])) return saved[key];
+      if (hasValue(fileConfig[key])) return fileConfig[key];
+      return fallback;
+    }
+
+    function pickConfigArray(saved, fileConfig, key, forceFileConfig) {
+      if (forceFileConfig && Array.isArray(fileConfig[key])) return fileConfig[key];
+      if (Array.isArray(saved[key])) return saved[key];
+      if (Array.isArray(fileConfig[key])) return fileConfig[key];
+      return [];
+    }
+
+    function hasValue(value) {
+      return value !== undefined && value !== null && value !== "";
     }
 
     function saveConfig(config) {
@@ -236,8 +267,10 @@
       } catch (error) {
         console.error(error);
         state.error = error;
-        state.problems = [];
-        state.ignoredInactiveCount = 0;
+        if (!state.lastRefreshAt) {
+          state.problems = [];
+          state.ignoredInactiveCount = 0;
+        }
         render();
       } finally {
         state.loading = false;
@@ -413,7 +446,7 @@
     }
 
     function render() {
-      if (state.error) {
+      if (state.error && !state.lastRefreshAt) {
         renderSummary([]);
         renderError(state.error);
         return;
@@ -443,14 +476,19 @@
       setCardNote(elements.noteAverage, counts[3]);
       setCardNote(elements.noteWarning, counts[2]);
 
-      elements.statusPill.textContent = total > 0 ? "Em alerta" : "Operacional";
-      elements.statusPill.classList.toggle("alerting", total > 0);
+      elements.statusPill.classList.toggle("warning", Boolean(state.error && state.lastRefreshAt));
+      elements.statusPill.classList.toggle("alerting", total > 0 && !(state.error && state.lastRefreshAt));
+      elements.statusPill.textContent = state.error && state.lastRefreshAt
+        ? "Sync falhou"
+        : total > 0 ? "Em alerta" : "Operacional";
       const sortLabel = sortModeLabel[state.config.SORT_MODE] || sortModeLabel.severity;
       const pagination = getPaginationState(total);
       elements.pageTitle.textContent = total > 0
         ? `- Pagina ${pagination.currentPage + 1}/${pagination.totalPages}`
         : "";
-      elements.panelSubtitle.textContent = `Ordenacao: ${sortLabel}`;
+      elements.panelSubtitle.textContent = state.error && state.lastRefreshAt
+        ? `Ultimos dados bons - ordenacao: ${sortLabel}`
+        : `Ordenacao: ${sortLabel}`;
     }
 
     function setCardNote(element, count) {
@@ -482,7 +520,6 @@
         <div class="problem-row ${problem.status === "RESOLVIDO" ? "resolved" : "incident"}">
           <div class="event-time">${formatEventTime(problem.clock)}</div>
           <div class="severity-badge sev-${problem.severity}">${severityMap[problem.severity] || "N/D"}</div>
-          <div class="status-badge ${problem.status === "RESOLVIDO" ? "resolved" : "incident"}">${problem.status}</div>
           <div class="entity">
             <div class="primary" title="${escapeHtml(problem.clientName)}">${escapeHtml(problem.clientName)}</div>
             <div class="secondary" title="${escapeHtml(problem.hostName)}">${escapeHtml(problem.hostName)}</div>
@@ -533,6 +570,8 @@
       updateSortButtons();
       elements.statusPill.textContent = "Erro";
       elements.statusPill.classList.add("alerting");
+      elements.statusPill.classList.remove("warning");
+      elements.pageTitle.textContent = "";
       elements.panelSubtitle.textContent = "Falha ao consultar API";
       elements.footerStatus.textContent = "Erro na atualizacao";
       elements.problemList.innerHTML = `
@@ -549,7 +588,8 @@
       renderSummary([]);
       updateSortButtons();
       elements.statusPill.textContent = "Configurar";
-      elements.statusPill.classList.remove("alerting");
+      elements.statusPill.classList.remove("alerting", "warning");
+      elements.pageTitle.textContent = "";
       elements.panelSubtitle.textContent = "Configure URL e token da API";
       elements.footerStatus.textContent = "Aguardando configuracao da API";
       elements.problemList.innerHTML = `
@@ -564,6 +604,7 @@
 
     function loadDemoProblems() {
       const now = Math.floor(Date.now() / 1000);
+      state.error = null;
       state.problems = [
         {
           eventid: "9004",
@@ -655,6 +696,11 @@
 
     function renderFooter() {
       if (!state.lastRefreshAt) return;
+      if (state.error) {
+        elements.footerStatus.textContent = `Ultima sync OK ${state.lastRefreshAt.toLocaleTimeString("pt-BR")} - falha atual: ${state.error.message}`;
+        return;
+      }
+
       elements.footerStatus.textContent = `Sincronizado ${state.lastRefreshAt.toLocaleTimeString("pt-BR")}`;
     }
 
@@ -712,6 +758,11 @@
       const now = new Date();
       elements.clockTime.textContent = now.toLocaleTimeString("pt-BR");
       elements.clockDate.textContent = now.toLocaleDateString("pt-BR");
+    }
+
+    function updateViewportMode() {
+      const isTv1080p = window.innerWidth >= 1600 && window.innerHeight >= 900 && window.innerHeight <= 1200;
+      elements.tv.classList.toggle("tv-1080p", isTv1080p);
     }
 
     function formatEventTime(clock) {
@@ -879,6 +930,17 @@
       if (event.target === elements.settingsDrawer) closeSettings();
     });
 
+    document.addEventListener("keydown", event => {
+      if (event.key === "F2") {
+        event.preventDefault();
+        openSettings();
+      }
+
+      if (event.key === "Escape" && elements.settingsDrawer.classList.contains("open")) {
+        closeSettings();
+      }
+    });
+
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden && state.lastRefreshAt) {
         const ageMs = Date.now() - state.lastRefreshAt.getTime();
@@ -888,6 +950,9 @@
       }
     });
 
+    window.addEventListener("resize", updateViewportMode);
+
+    updateViewportMode();
     updateClock();
     renderSetup();
     scheduleAutoRefresh();
