@@ -916,6 +916,17 @@
       outline: none;
     }
 
+    .admin-input-action {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+    }
+
+    .admin-input-action .action {
+      height: 44px;
+      white-space: nowrap;
+    }
+
     .admin-form input:focus,
     .admin-grid-form input:focus,
     .admin-grid-form select:focus {
