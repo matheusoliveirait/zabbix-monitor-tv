@@ -4,6 +4,34 @@ declare(strict_types=1);
 
 require __DIR__ . '/bootstrap.php';
 
+function validate_zabbix_api_url(string $url): string
+{
+    $url = trim($url);
+    $templateTokens = ['DIGITE-O-IP-DO-ZABBIX', 'DIGITE O IP DO ZABBIX'];
+
+    if ($url === '') {
+        json_error('Informe a URL da API do Zabbix.', 422);
+    }
+
+    foreach ($templateTokens as $token) {
+        if (stripos($url, $token) !== false) {
+            json_error('Substitua o modelo pelo IP ou DNS real do Zabbix.', 422);
+        }
+    }
+
+    $parts = parse_url($url);
+    $scheme = strtolower((string)($parts['scheme'] ?? ''));
+    if (!in_array($scheme, ['http', 'https'], true) || empty($parts['host'])) {
+        json_error('Use uma URL completa, por exemplo http://192.168.0.7/zabbix/api_jsonrpc.php.', 422);
+    }
+
+    if (stripos((string)($parts['path'] ?? ''), 'api_jsonrpc.php') === false) {
+        json_error('A URL deve apontar para o api_jsonrpc.php do Zabbix.', 422);
+    }
+
+    return $url;
+}
+
 try {
     require_admin();
     $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -43,6 +71,7 @@ try {
         } elseif (!empty($input['clear_zabbix_token'])) {
             $tokenEncrypted = null;
         }
+        $zabbixApiUrl = validate_zabbix_api_url((string)($input['zabbix_api_url'] ?? ''));
 
         $stmt = db()->prepare(
             'UPDATE settings
@@ -58,7 +87,7 @@ try {
              WHERE id = 1'
         );
         $stmt->execute([
-            trim((string)($input['zabbix_api_url'] ?? '')),
+            $zabbixApiUrl,
             $tokenEncrypted,
             clamp_int($input['refresh_seconds'] ?? 10, 5, 900, 10),
             clamp_int($input['api_limit'] ?? 500, 20, 5000, 500),
