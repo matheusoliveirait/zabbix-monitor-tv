@@ -67,7 +67,11 @@
       <form id="settingsFormAdmin" class="admin-grid-form">
         <label class="full">
           URL da API do Zabbix
-          <input name="zabbix_api_url" type="url" placeholder="http://zabbix.local/api_jsonrpc.php" required />
+          <div class="admin-input-action">
+            <input name="zabbix_api_url" type="text" placeholder="http://DIGITE-O-IP-DO-ZABBIX/zabbix/api_jsonrpc.php" required />
+            <button class="action" id="zabbixUrlButton" type="button">Digitar URL</button>
+          </div>
+          <span class="admin-hint">Modelo: http://DIGITE-O-IP-DO-ZABBIX/zabbix/api_jsonrpc.php</span>
         </label>
         <label class="full">
           Token da API
