@@ -1,0 +1,287 @@
+<?php
+
+declare(strict_types=1);
+
+error_reporting(E_ALL);
+ini_set('display_errors', '0');
+
+header('Content-Type: application/json; charset=utf-8');
+
+function app_config(): array
+{
+    static $config = null;
+
+    if ($config !== null) {
+        return $config;
+    }
+
+    $root = dirname(__DIR__);
+    $localConfig = $root . '/config/app.php';
+    $exampleConfig = $root . '/config/app.example.php';
+    $config = require (is_file($localConfig) ? $localConfig : $exampleConfig);
+    $config['_using_example_config'] = !is_file($localConfig);
+
+    return $config;
+}
+
+function start_app_session(): void
+{
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        return;
+    }
+
+    $config = app_config();
+    session_name((string)($config['session_name'] ?? 'hpro_tv_session'));
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+    session_start();
+}
+
+function db(): PDO
+{
+    static $pdo = null;
+
+    if ($pdo instanceof PDO) {
+        return $pdo;
+    }
+
+    $db = app_config()['db'];
+    $charset = $db['charset'] ?? 'utf8mb4';
+    $dsn = sprintf(
+        'mysql:host=%s;port=%d;dbname=%s;charset=%s',
+        $db['host'] ?? '127.0.0.1',
+        (int)($db['port'] ?? 3306),
+        $db['database'] ?? 'hpro_tv',
+        $charset
+    );
+
+    $pdo = new PDO($dsn, $db['username'] ?? 'root', $db['password'] ?? '', [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+    ]);
+
+    return $pdo;
+}
+
+function json_response(array $payload, int $status = 200): never
+{
+    http_response_code($status);
+    echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
+function json_error(string $message, int $status = 400, array $extra = []): never
+{
+    json_response(['ok' => false, 'error' => $message] + $extra, $status);
+}
+
+function json_input(): array
+{
+    $raw = file_get_contents('php://input') ?: '';
+    if ($raw === '') {
+        return [];
+    }
+
+    $data = json_decode($raw, true);
+    if (!is_array($data)) {
+        json_error('JSON invalido.', 400);
+    }
+
+    return $data;
+}
+
+function users_count(): int
+{
+    return (int)db()->query('SELECT COUNT(*) FROM users')->fetchColumn();
+}
+
+function current_user(): ?array
+{
+    start_app_session();
+
+    if (empty($_SESSION['user_id'])) {
+        return null;
+    }
+
+    $stmt = db()->prepare('SELECT id, username, name FROM users WHERE id = ?');
+    $stmt->execute([(int)$_SESSION['user_id']]);
+    $user = $stmt->fetch();
+
+    return $user ?: null;
+}
+
+function require_admin(): array
+{
+    $user = current_user();
+
+    if (!$user) {
+        json_error('Login necessario.', 401, ['needsSetup' => users_count() === 0]);
+    }
+
+    return $user;
+}
+
+function clamp_int(mixed $value, int $min, int $max, int $fallback): int
+{
+    if (!is_numeric($value)) {
+        return $fallback;
+    }
+
+    return max($min, min($max, (int)$value));
+}
+
+function parse_ids(mixed $value): array
+{
+    if (is_array($value)) {
+        return array_values(array_filter(array_map('strval', $value), static fn($item) => trim($item) !== ''));
+    }
+
+    return array_values(array_filter(array_map('trim', explode(',', (string)$value)), static fn($item) => $item !== ''));
+}
+
+function encode_ids(array $ids): string
+{
+    return implode(',', parse_ids($ids));
+}
+
+function decode_ids(?string $value): array
+{
+    return parse_ids($value ?? '');
+}
+
+function crypto_key(): string
+{
+    $key = (string)(app_config()['app_key'] ?? '');
+
+    return hash('sha256', $key, true);
+}
+
+function encrypt_secret(string $plain): string
+{
+    $iv = random_bytes(16);
+    $cipher = openssl_encrypt($plain, 'AES-256-CBC', crypto_key(), OPENSSL_RAW_DATA, $iv);
+
+    if ($cipher === false) {
+        json_error('Falha ao criptografar segredo.', 500);
+    }
+
+    return base64_encode($iv . $cipher);
+}
+
+function decrypt_secret(?string $encoded): string
+{
+    if (!$encoded) {
+        return '';
+    }
+
+    $raw = base64_decode($encoded, true);
+    if ($raw === false || strlen($raw) <= 16) {
+        return '';
+    }
+
+    $iv = substr($raw, 0, 16);
+    $cipher = substr($raw, 16);
+    $plain = openssl_decrypt($cipher, 'AES-256-CBC', crypto_key(), OPENSSL_RAW_DATA, $iv);
+
+    return $plain === false ? '' : $plain;
+}
+
+function settings_row(): array
+{
+    $stmt = db()->query('SELECT * FROM settings WHERE id = 1');
+    $row = $stmt->fetch();
+
+    if ($row) {
+        return $row;
+    }
+
+    db()->exec('INSERT INTO settings (id) VALUES (1)');
+
+    return settings_row();
+}
+
+function frontend_config_from_settings(array $settings): array
+{
+    return [
+        'REFRESH_SECONDS' => (int)$settings['refresh_seconds'],
+        'API_LIMIT' => (int)$settings['api_limit'],
+        'PAGE_INTERVAL_SECONDS' => (int)$settings['page_interval_seconds'],
+        'SORT_MODE' => $settings['sort_mode'],
+        'FETCH_MODE' => $settings['fetch_mode'],
+        'MONITORED_GROUP_IDS' => decode_ids($settings['monitored_group_ids'] ?? ''),
+        'MONITORED_HOST_IDS' => decode_ids($settings['monitored_host_ids'] ?? ''),
+        'SEVERITIES' => [2, 3, 4, 5],
+        'USE_BACKEND' => true,
+    ];
+}
+
+function zabbix_request(string $method, array $params, string $apiUrl, string $token): array
+{
+    $payload = json_encode([
+        'jsonrpc' => '2.0',
+        'method' => $method,
+        'params' => $params,
+        'id' => time(),
+    ], JSON_UNESCAPED_SLASHES);
+
+    $headers = [
+        'Content-Type: application/json-rpc',
+        'Authorization: Bearer ' . $token,
+    ];
+
+    if (function_exists('curl_init')) {
+        $curl = curl_init($apiUrl);
+        curl_setopt_array($curl, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 20,
+        ]);
+
+        $body = curl_exec($curl);
+        $httpCode = (int)curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($curl);
+        curl_close($curl);
+
+        if ($body === false || $httpCode >= 400) {
+            throw new RuntimeException($curlError ?: 'HTTP ' . $httpCode . ' ao consultar Zabbix.');
+        }
+    } else {
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'POST',
+                'header' => implode("\r\n", $headers),
+                'content' => $payload,
+                'timeout' => 20,
+            ],
+        ]);
+        $body = file_get_contents($apiUrl, false, $context);
+
+        if ($body === false) {
+            throw new RuntimeException('Falha ao consultar Zabbix.');
+        }
+    }
+
+    $data = json_decode((string)$body, true);
+    if (!is_array($data)) {
+        throw new RuntimeException('Resposta invalida do Zabbix.');
+    }
+
+    if (isset($data['error'])) {
+        $message = $data['error']['data'] ?? $data['error']['message'] ?? 'Erro desconhecido na API do Zabbix.';
+        throw new RuntimeException((string)$message);
+    }
+
+    return $data['result'] ?? [];
+}
+
+function handle_api_exception(Throwable $error): never
+{
+    json_error($error->getMessage(), 500);
+}
