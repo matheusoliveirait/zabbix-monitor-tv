@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HPro TV - Admin</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="admin-page">
+  <main class="admin-shell">
+    <header class="admin-header">
+      <div>
+        <div class="eyebrow">HPro TV</div>
+        <h1>Configuracoes</h1>
+      </div>
+      <a class="admin-link" href="index.html">Voltar ao painel</a>
+    </header>
+
+    <section class="admin-panel" id="messagePanel" hidden>
+      <div id="messageText"></div>
+    </section>
+
+    <section class="admin-panel" id="setupPanel" hidden>
+      <h2>Primeiro acesso</h2>
+      <p class="admin-muted">Crie o usuario administrador inicial para proteger as configuracoes do painel.</p>
+      <form id="setupForm" class="admin-form">
+        <label>
+          Nome
+          <input name="name" type="text" value="Administrador" required />
+        </label>
+        <label>
+          Usuario
+          <input name="username" type="text" value="admin" autocomplete="username" required />
+        </label>
+        <label>
+          Senha
+          <input name="password" type="password" autocomplete="new-password" minlength="8" required />
+        </label>
+        <button class="action primary" type="submit">Criar administrador</button>
+      </form>
+    </section>
+
+    <section class="admin-panel" id="loginPanel" hidden>
+      <h2>Login</h2>
+      <form id="loginForm" class="admin-form">
+        <label>
+          Usuario
+          <input name="username" type="text" autocomplete="username" required />
+        </label>
+        <label>
+          Senha
+          <input name="password" type="password" autocomplete="current-password" required />
+        </label>
+        <button class="action primary" type="submit">Entrar</button>
+      </form>
+    </section>
+
+    <section class="admin-panel" id="settingsPanel" hidden>
+      <div class="admin-panel-head">
+        <div>
+          <h2>Zabbix e painel</h2>
+          <p class="admin-muted" id="sessionText">Sessao ativa</p>
+        </div>
+        <button class="action" id="logoutButton" type="button">Sair</button>
+      </div>
+
+      <form id="settingsFormAdmin" class="admin-grid-form">
+        <label class="full">
+          URL da API do Zabbix
+          <input name="zabbix_api_url" type="url" placeholder="http://zabbix.local/api_jsonrpc.php" required />
+        </label>
+        <label class="full">
+          Token da API
+          <input name="zabbix_token" type="password" autocomplete="off" placeholder="Deixe vazio para manter o token atual" />
+          <span id="tokenHint" class="admin-hint">Nenhum token salvo.</span>
+        </label>
+        <label>
+          Atualizacao
+          <input name="refresh_seconds" type="number" min="5" max="900" step="5" required />
+        </label>
+        <label>
+          Limite API
+          <input name="api_limit" type="number" min="20" max="5000" step="10" required />
+        </label>
+        <label>
+          Troca de pagina
+          <input name="page_interval_seconds" type="number" min="5" max="120" step="5" required />
+        </label>
+        <label>
+          Ordenacao
+          <select name="sort_mode" required>
+            <option value="recent">Mais recentes</option>
+            <option value="severity">Criticidade primeiro</option>
+            <option value="duration">Duracao primeiro</option>
+            <option value="client">Cliente / host</option>
+            <option value="problem">Problema</option>
+          </select>
+        </label>
+        <label>
+          Escopo
+          <select name="fetch_mode" required>
+            <option value="incidents">Incidentes ativos</option>
+            <option value="problems">Todos os problemas ativos</option>
+          </select>
+        </label>
+        <label>
+          IDs de grupos
+          <input name="monitored_group_ids" type="text" placeholder="12, 15, 18" />
+        </label>
+        <label>
+          IDs de hosts
+          <input name="monitored_host_ids" type="text" placeholder="10084, 10120" />
+        </label>
+        <div class="admin-actions full">
+          <button class="action primary" type="submit">Salvar configuracoes</button>
+          <a class="action" href="index.html">Abrir painel</a>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <script src="admin.js"></script>
+</body>
+</html>
