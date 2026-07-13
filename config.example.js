@@ -1,6 +1,7 @@
 window.HPRO_CONFIG = {
-  ZABBIX_API_URL: "http://192.168.0.7/zabbix/api_jsonrpc.php",
-  ZABBIX_TOKEN: "",
+  USE_BACKEND: true,
+  BACKEND_PROBLEMS_URL: "api/problems.php",
+  ADMIN_URL: "admin.html",
   REFRESH_SECONDS: 10,
   API_LIMIT: 500,
   PAGE_INTERVAL_SECONDS: 15,
