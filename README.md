@@ -21,6 +21,12 @@ O projeto substitui a visualizacao nativa do dashboard/widget do Zabbix em uma t
 - Acesso ao admin pelo `F2`.
 - Modo demo para validar layout sem conectar no Zabbix.
 
+## Requisitos
+
+- XAMPP com PHP 8.1 ou superior.
+- MySQL ou MariaDB.
+- Token de API do Zabbix com permissao para consultar os mesmos hosts do widget atual.
+
 ## Estrutura
 
 - `index.html`: painel da TV.
