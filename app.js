@@ -8,6 +8,9 @@
       PAGE_INTERVAL_SECONDS: 15,
       SORT_MODE: "recent",
       FETCH_MODE: "incidents",
+      USE_BACKEND: true,
+      BACKEND_PROBLEMS_URL: "api/problems.php",
+      ADMIN_URL: "admin.html",
       SEVERITIES: [2, 3, 4, 5],
       MONITORED_GROUP_IDS: [],
       MONITORED_HOST_IDS: []
@@ -102,6 +105,9 @@
           ),
           SORT_MODE: ["recent", "severity", "duration", "client", "problem"].includes(migratedSortMode) ? migratedSortMode : DEFAULT_CONFIG.SORT_MODE,
           FETCH_MODE: ["incidents", "problems"].includes(baseConfig.FETCH_MODE) ? baseConfig.FETCH_MODE : DEFAULT_CONFIG.FETCH_MODE,
+          USE_BACKEND: baseConfig.USE_BACKEND !== false,
+          BACKEND_PROBLEMS_URL: baseConfig.BACKEND_PROBLEMS_URL || DEFAULT_CONFIG.BACKEND_PROBLEMS_URL,
+          ADMIN_URL: baseConfig.ADMIN_URL || DEFAULT_CONFIG.ADMIN_URL,
           SEVERITIES: DEFAULT_CONFIG.SEVERITIES,
           MONITORED_GROUP_IDS: pickConfigArray(saved, FILE_CONFIG, "MONITORED_GROUP_IDS", forceFileConfig),
           MONITORED_HOST_IDS: pickConfigArray(saved, FILE_CONFIG, "MONITORED_HOST_IDS", forceFileConfig)
@@ -175,6 +181,11 @@
 
       if (DEMO_MODE) {
         loadDemoProblems();
+        return;
+      }
+
+      if (shouldUseBackend()) {
+        loadProblemsFromBackend();
         return;
       }
 
@@ -276,6 +287,71 @@
         state.loading = false;
         elements.refreshButton.disabled = false;
       }
+    }
+
+    function shouldUseBackend() {
+      return !DEMO_MODE && state.config.USE_BACKEND !== false;
+    }
+
+    async function loadProblemsFromBackend() {
+      state.loading = true;
+      state.error = null;
+      elements.refreshButton.disabled = true;
+      elements.footerStatus.textContent = "Consultando backend...";
+
+      try {
+        const response = await fetch(state.config.BACKEND_PROBLEMS_URL, {
+          cache: "no-store",
+          credentials: "same-origin"
+        });
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok || data.ok === false) {
+          const error = new Error(data.error || `HTTP ${response.status}`);
+          error.needsBackendConfig = response.status === 424;
+          throw error;
+        }
+
+        if (data.config) {
+          state.config = { ...state.config, ...data.config };
+        }
+
+        state.ignoredInactiveCount = Number(data.ignoredInactiveCount || 0);
+        state.problems = (data.problems || []).map(normalizeBackendProblem);
+        state.problems.sort(sortProblems);
+        state.lastRefreshAt = new Date();
+        render();
+      } catch (error) {
+        console.error(error);
+        if (error.needsBackendConfig && !state.lastRefreshAt) {
+          renderSetup();
+          return;
+        }
+
+        state.error = error;
+        if (!state.lastRefreshAt) {
+          state.problems = [];
+          state.ignoredInactiveCount = 0;
+        }
+        render();
+      } finally {
+        state.loading = false;
+        elements.refreshButton.disabled = false;
+      }
+    }
+
+    function normalizeBackendProblem(problem) {
+      return {
+        ...problem,
+        severity: Number(problem.severity),
+        clock: Number(problem.clock),
+        rClock: Number(problem.rClock) || 0,
+        clientName: problem.clientName || "Cliente nao identificado",
+        hostName: problem.hostName || "Host nao identificado",
+        name: problem.name || "Problema sem nome",
+        opdata: problem.opdata || "",
+        status: problem.status || "INCIDENTE"
+      };
     }
 
     async function getHostsWithGroups(hostIds) {
@@ -826,6 +902,11 @@
     }
 
     function openSettings() {
+      if (shouldUseBackend()) {
+        window.location.href = state.config.ADMIN_URL || DEFAULT_CONFIG.ADMIN_URL;
+        return;
+      }
+
       fillSettingsForm();
       elements.settingsDrawer.classList.add("open");
       document.getElementById("apiUrl").focus();
