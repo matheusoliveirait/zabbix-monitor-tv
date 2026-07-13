@@ -15,6 +15,9 @@ const messageText = document.getElementById("messageText");
 const sessionText = document.getElementById("sessionText");
 const tokenHint = document.getElementById("tokenHint");
 const logoutButton = document.getElementById("logoutButton");
+const zabbixUrlButton = document.getElementById("zabbixUrlButton");
+const ZABBIX_URL_TEMPLATE = "http://DIGITE-O-IP-DO-ZABBIX/zabbix/api_jsonrpc.php";
+const nextUrl = new URLSearchParams(window.location.search).get("next");
 
 function showPanel(name) {
   Object.entries(panels).forEach(([key, panel]) => {
@@ -66,6 +69,43 @@ function textToIds(value) {
     .filter(Boolean);
 }
 
+function getSafeNextUrl() {
+  if (!nextUrl) return "";
+
+  try {
+    const url = new URL(nextUrl, window.location.href);
+    if (url.origin !== window.location.origin) return "";
+    if (url.pathname.endsWith("/admin.html")) return "";
+    return url.href;
+  } catch {
+    return "";
+  }
+}
+
+function redirectAfterLogin() {
+  const destination = getSafeNextUrl();
+  if (!destination) return false;
+
+  window.location.href = destination;
+  return true;
+}
+
+function focusZabbixUrlTemplate() {
+  const input = forms.settings.zabbix_api_url;
+  if (!input.value.trim()) {
+    input.value = ZABBIX_URL_TEMPLATE;
+  }
+
+  input.focus();
+  const tokenStart = input.value.indexOf("DIGITE-O-IP-DO-ZABBIX");
+  if (tokenStart >= 0) {
+    input.setSelectionRange(tokenStart, tokenStart + "DIGITE-O-IP-DO-ZABBIX".length);
+    return;
+  }
+
+  input.select();
+}
+
 async function loadSession() {
   clearMessage();
 
@@ -82,6 +122,8 @@ async function loadSession() {
       return;
     }
 
+    if (redirectAfterLogin()) return;
+
     sessionText.textContent = `Logado como ${session.user.name || session.user.username}`;
     showPanel("settings");
     await loadSettings();
@@ -96,7 +138,7 @@ async function loadSettings() {
   const settings = data.settings;
   const form = forms.settings;
 
-  form.zabbix_api_url.value = settings.zabbix_api_url || "";
+  form.zabbix_api_url.value = settings.zabbix_api_url || ZABBIX_URL_TEMPLATE;
   form.zabbix_token.value = "";
   form.refresh_seconds.value = settings.refresh_seconds || 10;
   form.api_limit.value = settings.api_limit || 500;
@@ -139,6 +181,7 @@ forms.login.addEventListener("submit", async event => {
       method: "POST",
       body: JSON.stringify(formJson(forms.login)),
     });
+    if (redirectAfterLogin()) return;
     await loadSession();
   } catch (error) {
     showMessage(error.message, "error");
@@ -151,6 +194,12 @@ forms.settings.addEventListener("submit", async event => {
   const payload = formJson(forms.settings);
   payload.monitored_group_ids = textToIds(payload.monitored_group_ids);
   payload.monitored_host_ids = textToIds(payload.monitored_host_ids);
+
+  if (String(payload.zabbix_api_url || "").includes("DIGITE-O-IP-DO-ZABBIX")) {
+    showMessage("Substitua o modelo pelo IP ou DNS real do Zabbix antes de salvar.", "error");
+    focusZabbixUrlTemplate();
+    return;
+  }
 
   try {
     await api("api/settings.php", {
@@ -175,5 +224,7 @@ logoutButton.addEventListener("click", async () => {
     showMessage(error.message, "error");
   }
 });
+
+zabbixUrlButton.addEventListener("click", focusZabbixUrlTemplate);
 
 loadSession();
