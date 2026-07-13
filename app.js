@@ -10,6 +10,7 @@
       FETCH_MODE: "incidents",
       USE_BACKEND: true,
       BACKEND_PROBLEMS_URL: "api/problems.php",
+      AUTH_URL: "api/auth.php",
       ADMIN_URL: "admin.html",
       SEVERITIES: [2, 3, 4, 5],
       MONITORED_GROUP_IDS: [],
@@ -107,6 +108,7 @@
           FETCH_MODE: ["incidents", "problems"].includes(baseConfig.FETCH_MODE) ? baseConfig.FETCH_MODE : DEFAULT_CONFIG.FETCH_MODE,
           USE_BACKEND: baseConfig.USE_BACKEND !== false,
           BACKEND_PROBLEMS_URL: baseConfig.BACKEND_PROBLEMS_URL || DEFAULT_CONFIG.BACKEND_PROBLEMS_URL,
+          AUTH_URL: baseConfig.AUTH_URL || DEFAULT_CONFIG.AUTH_URL,
           ADMIN_URL: baseConfig.ADMIN_URL || DEFAULT_CONFIG.ADMIN_URL,
           SEVERITIES: DEFAULT_CONFIG.SEVERITIES,
           MONITORED_GROUP_IDS: pickConfigArray(saved, FILE_CONFIG, "MONITORED_GROUP_IDS", forceFileConfig),
@@ -178,6 +180,11 @@
 
     async function loadProblems() {
       if (state.loading) return;
+
+      if (shouldRequireSession()) {
+        const authenticated = await ensureBackendSession();
+        if (!authenticated) return;
+      }
 
       if (DEMO_MODE) {
         loadDemoProblems();
@@ -293,6 +300,38 @@
       return !DEMO_MODE && state.config.USE_BACKEND !== false;
     }
 
+    function shouldRequireSession() {
+      return state.config.USE_BACKEND !== false;
+    }
+
+    async function ensureBackendSession() {
+      try {
+        const response = await fetch(state.config.AUTH_URL || DEFAULT_CONFIG.AUTH_URL, {
+          cache: "no-store",
+          credentials: "same-origin"
+        });
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok || data.ok === false || data.needsSetup || !data.user) {
+          redirectToLogin();
+          return false;
+        }
+
+        return true;
+      } catch (error) {
+        console.error(error);
+        state.error = new Error("Falha ao validar login no backend.");
+        render();
+        return false;
+      }
+    }
+
+    function redirectToLogin() {
+      const adminUrl = state.config.ADMIN_URL || DEFAULT_CONFIG.ADMIN_URL;
+      const next = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      window.location.href = `${adminUrl}?next=${encodeURIComponent(next)}`;
+    }
+
     async function loadProblemsFromBackend() {
       state.loading = true;
       state.error = null;
@@ -309,6 +348,7 @@
         if (!response.ok || data.ok === false) {
           const error = new Error(data.error || `HTTP ${response.status}`);
           error.needsBackendConfig = response.status === 424;
+          error.requiresLogin = response.status === 401;
           throw error;
         }
 
@@ -323,6 +363,11 @@
         render();
       } catch (error) {
         console.error(error);
+        if (error.requiresLogin) {
+          redirectToLogin();
+          return;
+        }
+
         if (error.needsBackendConfig && !state.lastRefreshAt) {
           renderSetup();
           return;
