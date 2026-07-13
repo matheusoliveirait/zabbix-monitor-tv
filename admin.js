@@ -166,6 +166,7 @@ forms.setup.addEventListener("submit", async event => {
       body: JSON.stringify({ ...formJson(forms.setup), setup: true }),
     });
     showMessage("Administrador criado com sucesso.", "success");
+    window.history.replaceState(null, "", "admin.html");
     await loadSession();
   } catch (error) {
     showMessage(error.message, "error");
