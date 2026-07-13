@@ -54,6 +54,12 @@
       padding: 10px;
     }
 
+    .tv.tv-1080p {
+      grid-template-rows: 88px 136px minmax(0, 1fr) 26px;
+      gap: 8px;
+      padding: 8px;
+    }
+
     .topbar,
     .card,
     .incidents {
@@ -70,6 +76,10 @@
       gap: 24px;
       padding: 12px 18px;
       overflow: hidden;
+    }
+
+    .tv.tv-1080p .topbar {
+      padding: 8px 16px;
     }
 
     .brand {
@@ -128,6 +138,22 @@
       display: flex;
       align-items: center;
       gap: 12px;
+    }
+
+    .header-hint {
+      max-width: 190px;
+      color: var(--muted-2);
+      font-size: clamp(11px, 0.86vw, 14px);
+      font-weight: 650;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .utility-actions {
+      display: none;
+      align-items: center;
+      gap: 10px;
     }
 
     .clock {
@@ -191,6 +217,10 @@
       grid-template-rows: auto minmax(0, 1fr) auto;
       align-items: center;
       border-left: 8px solid var(--border);
+    }
+
+    .tv.tv-1080p .card {
+      padding: 12px 16px;
     }
 
     .card::after {
@@ -339,11 +369,17 @@
       background: rgba(239, 68, 68, 0.14);
     }
 
+    .status-pill.warning {
+      border-color: rgba(245, 158, 11, 0.46);
+      color: #fde68a;
+      background: rgba(245, 158, 11, 0.12);
+    }
+
     .table-head,
     .problem-row {
       display: grid;
-      grid-template-columns: 132px 164px 152px minmax(220px, 0.72fr) minmax(360px, 1.25fr) 150px;
-      gap: 14px;
+      grid-template-columns: 132px 166px minmax(250px, 0.78fr) minmax(440px, 1.35fr) 150px;
+      gap: 16px;
       align-items: center;
     }
 
@@ -440,6 +476,19 @@
       background: rgba(17, 27, 39, 0.86);
     }
 
+    .problem-row.resolved {
+      opacity: 0.72;
+      background:
+        linear-gradient(90deg, rgba(34, 197, 94, 0.13), transparent 44%),
+        rgba(14, 30, 26, 0.76);
+    }
+
+    .problem-row.resolved:nth-child(even) {
+      background:
+        linear-gradient(90deg, rgba(34, 197, 94, 0.12), transparent 44%),
+        rgba(12, 25, 24, 0.82);
+    }
+
     .problem-list.compact .problem-row {
       padding-top: 4px;
       padding-bottom: 4px;
@@ -452,11 +501,6 @@
 
     .problem-list.compact .event-time {
       font-size: clamp(17px, 1.25vw, 22px);
-    }
-
-    .problem-list.compact .status-badge {
-      height: 36px;
-      font-size: clamp(13px, 1vw, 17px);
     }
 
     .problem-list.compact .primary,
@@ -508,37 +552,6 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-    }
-
-    .status-badge {
-      width: fit-content;
-      max-width: 100%;
-      min-width: 126px;
-      height: 42px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0 12px;
-      border-radius: 8px;
-      font-size: clamp(14px, 1.14vw, 20px);
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .status-badge.incident {
-      color: #fecaca;
-      background: rgba(239, 68, 68, 0.16);
-      border: 1px solid rgba(239, 68, 68, 0.38);
-    }
-
-    .status-badge.resolved {
-      color: #bbf7d0;
-      background: rgba(34, 197, 94, 0.16);
-      border: 1px solid rgba(34, 197, 94, 0.38);
     }
 
     .severity-badge.sev-5 {
@@ -812,6 +825,10 @@
         gap: 10px;
       }
 
+      .header-hint {
+        display: none;
+      }
+
       .clock {
         min-width: 180px;
       }
@@ -845,7 +862,7 @@
 
       .table-head,
       .problem-row {
-        grid-template-columns: 108px 136px 126px minmax(176px, 0.68fr) minmax(280px, 1.18fr) 124px;
+        grid-template-columns: 108px 136px minmax(206px, 0.76fr) minmax(330px, 1.22fr) 124px;
         gap: 10px;
       }
     }
@@ -890,7 +907,7 @@
         grid-template-columns: 1fr auto;
         grid-template-areas:
           "time dur"
-          "sev status"
+          "sev sev"
           "entity entity"
           "problem problem";
         align-items: start;
@@ -902,11 +919,6 @@
 
       .severity-badge {
         grid-area: sev;
-      }
-
-      .status-badge {
-        grid-area: status;
-        justify-self: end;
       }
 
       .entity {
