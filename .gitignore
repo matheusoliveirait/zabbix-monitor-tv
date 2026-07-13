@@ -13,3 +13,4 @@ node_modules/
 # Configuracoes locais opcionais
 .env
 .env.*
+config.js
