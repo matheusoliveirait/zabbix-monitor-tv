@@ -17,6 +17,7 @@
       --high: #f97316;
       --average: #f59e0b;
       --warning: #eab308;
+      --severity-dark-text: #111827;
       --shadow: 0 22px 58px rgba(0, 0, 0, 0.42);
     }
 
@@ -496,6 +497,7 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      border: 1px solid rgba(255, 255, 255, 0.12);
     }
 
     .event-time {
@@ -548,11 +550,15 @@
     }
 
     .severity-badge.sev-3 {
+      color: var(--severity-dark-text);
       background: var(--average);
+      border-color: rgba(245, 158, 11, 0.84);
     }
 
     .severity-badge.sev-2 {
+      color: var(--severity-dark-text);
       background: var(--warning);
+      border-color: rgba(234, 179, 8, 0.84);
     }
 
     .entity,
