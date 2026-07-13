@@ -87,6 +87,8 @@ function get_problems_with_fallback(array $params, string $apiUrl, string $token
 }
 
 try {
+    require_admin();
+
     $settings = settings_row();
     $apiUrl = trim((string)$settings['zabbix_api_url']);
     $token = decrypt_secret($settings['zabbix_token_encrypted'] ?? null);
