@@ -1,6 +1,7 @@
 window.HPRO_CONFIG = {
   USE_BACKEND: true,
   BACKEND_PROBLEMS_URL: "api/problems.php",
+  AUTH_URL: "api/auth.php",
   ADMIN_URL: "admin.html",
   REFRESH_SECONDS: 10,
   API_LIMIT: 500,
