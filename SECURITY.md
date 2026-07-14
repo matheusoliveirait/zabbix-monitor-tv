@@ -19,7 +19,7 @@ antes da divulgacao publica.
 
 - Use um token Zabbix dedicado e com o menor privilegio necessario.
 - Defina um `app_key` longo, aleatorio e exclusivo.
-- Nao versione `config/app.php`, `config.js` ou dumps do banco.
+- Nao versione `config/app.php` ou dumps do banco.
 - Publique o painel por HTTPS quando ele sair da rede local.
 - Restrinja o admin por firewall, VPN ou proxy reverso.
 - Mantenha PHP, Apache, MySQL/MariaDB e Zabbix atualizados.
