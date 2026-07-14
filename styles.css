@@ -448,18 +448,15 @@
       scrollbar-width: thin;
     }
 
-    .problem-list::-webkit-scrollbar,
-    .drawer-body::-webkit-scrollbar {
+    .problem-list::-webkit-scrollbar {
       width: 12px;
     }
 
-    .problem-list::-webkit-scrollbar-track,
-    .drawer-body::-webkit-scrollbar-track {
+    .problem-list::-webkit-scrollbar-track {
       background: #0b1118;
     }
 
-    .problem-list::-webkit-scrollbar-thumb,
-    .drawer-body::-webkit-scrollbar-thumb {
+    .problem-list::-webkit-scrollbar-thumb {
       background: #4d6278;
       border: 3px solid #0b1118;
       border-radius: 999px;
@@ -688,99 +685,6 @@
       text-overflow: ellipsis;
     }
 
-    .drawer-backdrop {
-      position: fixed;
-      inset: 0;
-      z-index: 10;
-      display: none;
-      justify-content: flex-end;
-      background: rgba(0, 0, 0, 0.58);
-    }
-
-    .drawer-backdrop.open {
-      display: flex;
-    }
-
-    .drawer {
-      width: min(480px, 100vw);
-      height: 100%;
-      display: grid;
-      grid-template-rows: auto minmax(0, 1fr) auto;
-      background: #101923;
-      border-left: 1px solid var(--border);
-      box-shadow: -24px 0 58px rgba(0, 0, 0, 0.42);
-    }
-
-    .drawer-head,
-    .drawer-foot {
-      padding: 18px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .drawer-foot {
-      border-top: 1px solid var(--border);
-      border-bottom: 0;
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-    }
-
-    .drawer-title {
-      margin: 0;
-      font-size: 22px;
-      font-weight: 750;
-    }
-
-    .drawer-body {
-      min-height: 0;
-      overflow: auto;
-      padding: 18px;
-      display: grid;
-      align-content: start;
-      gap: 15px;
-    }
-
-    .field {
-      display: grid;
-      gap: 7px;
-    }
-
-    .field label {
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 650;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-    }
-
-    .field input,
-    .field select {
-      width: 100%;
-      height: 44px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: #0b1118;
-      color: var(--text);
-      padding: 0 12px;
-      outline: none;
-    }
-
-    .field select {
-      cursor: pointer;
-    }
-
-    .field input:focus,
-    .field select:focus {
-      border-color: #64748b;
-    }
-
-    .hint {
-      margin: 0;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.45;
-    }
-
     .action {
       height: 42px;
       display: inline-flex;
@@ -800,6 +704,11 @@
       color: #07110e;
       border-color: transparent;
       background: var(--ok);
+    }
+
+    .action:disabled {
+      cursor: wait;
+      opacity: 0.58;
     }
 
     .admin-page {
