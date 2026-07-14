@@ -25,6 +25,9 @@ try {
         if ($username === '' || $password === '') {
             json_error('Informe usuario e senha.', 422);
         }
+        if (strlen($username) > 80 || strlen($password) > 4096) {
+            json_error('Usuario ou senha excede o tamanho permitido.', 422);
+        }
 
         if ($setupMode) {
             if (users_count() > 0) {
@@ -34,11 +37,17 @@ try {
             if (strlen($password) < 8) {
                 json_error('A senha inicial deve ter pelo menos 8 caracteres.', 422);
             }
+            if (strlen($username) < 3) {
+                json_error('O usuario inicial deve ter pelo menos 3 caracteres.', 422);
+            }
 
             $name = trim((string)($input['name'] ?? 'Administrador'));
+            if (strlen($name) > 120) {
+                json_error('O nome deve ter no maximo 120 caracteres.', 422);
+            }
             $stmt = db()->prepare('INSERT INTO users (username, password_hash, name) VALUES (?, ?, ?)');
             $stmt->execute([$username, password_hash($password, PASSWORD_DEFAULT), $name ?: 'Administrador']);
-            $_SESSION['user_id'] = (int)db()->lastInsertId();
+            login_user((int)db()->lastInsertId());
 
             json_response(['ok' => true, 'user' => current_user(), 'needsSetup' => false]);
         }
@@ -51,13 +60,12 @@ try {
             json_error('Usuario ou senha invalidos.', 401);
         }
 
-        $_SESSION['user_id'] = (int)$user['id'];
+        login_user((int)$user['id']);
         json_response(['ok' => true, 'user' => current_user(), 'needsSetup' => false]);
     }
 
     if ($method === 'DELETE') {
-        $_SESSION = [];
-        session_destroy();
+        logout_user();
         json_response(['ok' => true]);
     }
 
