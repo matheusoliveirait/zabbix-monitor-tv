@@ -6,21 +6,17 @@ require __DIR__ . '/bootstrap.php';
 
 function is_root_cause_event(mixed $causeEventId): bool
 {
-    return $causeEventId === null ||
-        $causeEventId === '' ||
-        $causeEventId === '0' ||
-        $causeEventId === 0 ||
-        $causeEventId === false;
+    return in_array($causeEventId, [null, '', '0', 0, false], true);
 }
 
 function has_non_zero_value(mixed $value): bool
 {
-    return $value !== null && $value !== '' && $value !== '0' && $value !== 0;
+    return !in_array($value, [null, '', '0', 0], true);
 }
 
 function is_enabled_status(mixed $status): bool
 {
-    return $status === null || $status === '' || (string)$status === '0';
+    return $status === 0 || $status === '0';
 }
 
 function get_client_name(array $tags, array $groups, string $hostName): string
@@ -71,7 +67,7 @@ function get_problems_with_fallback(array $params, string $apiUrl, string $token
 {
     try {
         return zabbix_request('problem.get', $params, $apiUrl, $token);
-    } catch (RuntimeException $error) {
+    } catch (ZabbixApiException $error) {
         $message = $error->getMessage();
         $canFallback = $fetchMode === 'incidents' &&
             (str_contains($message, '/source') || str_contains($message, '/object') || str_contains($message, 'Invalid parameter'));
@@ -80,6 +76,7 @@ function get_problems_with_fallback(array $params, string $apiUrl, string $token
             throw $error;
         }
 
+        // Some older Zabbix releases reject source/object even for trigger problems.
         unset($params['source'], $params['object']);
 
         return zabbix_request('problem.get', $params, $apiUrl, $token);
@@ -109,8 +106,6 @@ try {
             'clock',
             'r_eventid',
             'r_clock',
-            'acknowledged',
-            'suppressed',
             'cause_eventid',
             'opdata',
         ],
@@ -177,7 +172,8 @@ try {
                     'hostids' => $resolvedHostIds,
                     'selectHostGroups' => ['groupid', 'name'],
                 ], $apiUrl, $token);
-            } catch (RuntimeException) {
+            } catch (ZabbixApiException) {
+                // Zabbix versions before selectHostGroups used selectGroups.
                 $hosts = zabbix_request('host.get', [
                     'output' => ['hostid', 'host', 'name', 'status'],
                     'hostids' => $resolvedHostIds,
@@ -192,6 +188,8 @@ try {
     }
 
     $normalized = [];
+    // problem.get may still return events from disabled entities; verify the
+    // current trigger, host and item state before exposing an incident.
     foreach ($rootProblems as $problem) {
         $trigger = $triggerMap[(string)($problem['objectid'] ?? '')] ?? null;
         if (!$trigger || !is_enabled_status($trigger['status'] ?? null)) {
@@ -233,11 +231,7 @@ try {
             'name' => (string)($problem['name'] ?? $trigger['description'] ?? 'Problema sem nome'),
             'severity' => (int)($problem['severity'] ?? 0),
             'clock' => (int)($problem['clock'] ?? 0),
-            'rEventId' => (string)($problem['r_eventid'] ?? ''),
             'rClock' => $rClock,
-            'acknowledged' => $problem['acknowledged'] ?? null,
-            'suppressed' => $problem['suppressed'] ?? null,
-            'causeEventId' => $problem['cause_eventid'] ?? null,
             'opdata' => (string)($problem['opdata'] ?? ''),
             'hostName' => $hostName,
             'clientName' => get_client_name($problem['tags'] ?? [], $hostGroups, $hostName),
@@ -248,7 +242,6 @@ try {
     json_response([
         'ok' => true,
         'problems' => $normalized,
-        'ignoredInactiveCount' => count($rootProblems) - count($normalized),
         'config' => frontend_config_from_settings($settings),
         'syncedAt' => date(DATE_ATOM),
     ]);
