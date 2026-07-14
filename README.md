@@ -77,7 +77,7 @@ http://zabbix.example.local/zabbix/api_jsonrpc.php
 
 O usuario do token precisa enxergar os mesmos hosts e incidentes que devem aparecer na TV. IDs de grupos e hosts sao opcionais e podem limitar o escopo.
 
-O token e criptografado antes de ser salvo no banco. Os arquivos `config/app.php` e `config.js` sao locais e ignorados pelo Git.
+O token e criptografado antes de ser salvo no banco. O arquivo `config/app.php` e local e ignorado pelo Git.
 
 ## Demonstracao
 
@@ -105,7 +105,7 @@ Os cenarios usam apenas nomes ficticios.
 
 ## Seguranca
 
-- Nao envie `config/app.php`, `config.js`, dumps ou tokens ao GitHub.
+- Nao envie `config/app.php`, dumps ou tokens ao GitHub.
 - Prefira HTTPS quando o painel for acessado fora de uma rede confiavel.
 - Crie um token Zabbix dedicado, somente com as permissoes necessarias.
 - Restrinja o acesso administrativo por firewall, VPN ou proxy reverso quando possivel.
