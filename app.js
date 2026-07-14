@@ -1,37 +1,25 @@
     const DEFAULT_CONFIG = {
-      ZABBIX_API_URL: "http://zabbix.example.local/zabbix/api_jsonrpc.php",
-      ZABBIX_TOKEN: "",
-      CONFIG_VERSION: 6,
       REFRESH_SECONDS: 10,
-      API_LIMIT: 500,
       PAGE_SIZE: 6,
       PAGE_INTERVAL_SECONDS: 15,
       SORT_MODE: "recent",
-      FETCH_MODE: "incidents",
-      USE_BACKEND: true,
       BACKEND_PROBLEMS_URL: "api/problems.php",
-      AUTH_URL: "api/auth.php",
-      ADMIN_URL: "admin.html",
-      SEVERITIES: [2, 3, 4, 5],
-      MONITORED_GROUP_IDS: [],
-      MONITORED_HOST_IDS: []
+      ADMIN_URL: "admin.html"
     };
 
-    const STORAGE_KEY = "zabbix-monitor-tv-config-v1";
     const DEMO_VARIANT = new URLSearchParams(window.location.search).get("demo");
     const DEMO_MODE = DEMO_VARIANT !== null;
-    const FILE_CONFIG = getFileConfig();
 
     const state = {
-      config: loadConfig(),
+      config: { ...DEFAULT_CONFIG },
       problems: [],
-      ignoredInactiveCount: 0,
       loading: false,
       error: null,
       lastRefreshAt: null,
       refreshTimer: null,
       pageTimer: null,
-      currentPage: 0
+      currentPage: 0,
+      sortModeOverride: null
     };
 
     const severityMap = {
@@ -71,265 +59,42 @@
       statusPill: document.getElementById("statusPill"),
       problemList: document.getElementById("problemList"),
       sortButtons: document.querySelectorAll("[data-sort-mode]"),
-      footerStatus: document.getElementById("footerStatus"),
-      settingsDrawer: document.getElementById("settingsDrawer"),
-      settingsForm: document.getElementById("settingsForm"),
-      closeSettings: document.getElementById("closeSettings")
+      footerStatus: document.getElementById("footerStatus")
     };
-
-    function loadConfig() {
-      try {
-        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-        const baseConfig = { ...DEFAULT_CONFIG, ...FILE_CONFIG, ...saved };
-        const savedVersion = Number(saved.CONFIG_VERSION || 0);
-        const migratedRefreshSeconds = saved.CONFIG_VERSION
-          ? baseConfig.REFRESH_SECONDS
-          : Math.min(Number(baseConfig.REFRESH_SECONDS || DEFAULT_CONFIG.REFRESH_SECONDS), DEFAULT_CONFIG.REFRESH_SECONDS);
-        const migratedSortMode = savedVersion >= DEFAULT_CONFIG.CONFIG_VERSION
-          ? baseConfig.SORT_MODE
-          : DEFAULT_CONFIG.SORT_MODE;
-        const forceFileConfig = FILE_CONFIG.FORCE_FILE_CONFIG === true;
-
-        return {
-          ...baseConfig,
-          ZABBIX_API_URL: pickConfigValue(saved, FILE_CONFIG, "ZABBIX_API_URL", DEFAULT_CONFIG.ZABBIX_API_URL, forceFileConfig),
-          ZABBIX_TOKEN: pickConfigValue(saved, FILE_CONFIG, "ZABBIX_TOKEN", DEFAULT_CONFIG.ZABBIX_TOKEN, forceFileConfig),
-          CONFIG_VERSION: DEFAULT_CONFIG.CONFIG_VERSION,
-          REFRESH_SECONDS: clampNumber(migratedRefreshSeconds, 5, 900, DEFAULT_CONFIG.REFRESH_SECONDS),
-          API_LIMIT: clampNumber(baseConfig.API_LIMIT, 20, 5000, DEFAULT_CONFIG.API_LIMIT),
-          PAGE_SIZE: DEFAULT_CONFIG.PAGE_SIZE,
-          PAGE_INTERVAL_SECONDS: clampNumber(
-            baseConfig.PAGE_INTERVAL_SECONDS,
-            5,
-            120,
-            DEFAULT_CONFIG.PAGE_INTERVAL_SECONDS
-          ),
-          SORT_MODE: ["recent", "severity", "duration", "client", "problem"].includes(migratedSortMode) ? migratedSortMode : DEFAULT_CONFIG.SORT_MODE,
-          FETCH_MODE: ["incidents", "problems"].includes(baseConfig.FETCH_MODE) ? baseConfig.FETCH_MODE : DEFAULT_CONFIG.FETCH_MODE,
-          USE_BACKEND: baseConfig.USE_BACKEND !== false,
-          BACKEND_PROBLEMS_URL: baseConfig.BACKEND_PROBLEMS_URL || DEFAULT_CONFIG.BACKEND_PROBLEMS_URL,
-          AUTH_URL: baseConfig.AUTH_URL || DEFAULT_CONFIG.AUTH_URL,
-          ADMIN_URL: baseConfig.ADMIN_URL || DEFAULT_CONFIG.ADMIN_URL,
-          SEVERITIES: DEFAULT_CONFIG.SEVERITIES,
-          MONITORED_GROUP_IDS: pickConfigArray(saved, FILE_CONFIG, "MONITORED_GROUP_IDS", forceFileConfig),
-          MONITORED_HOST_IDS: pickConfigArray(saved, FILE_CONFIG, "MONITORED_HOST_IDS", forceFileConfig)
-        };
-      } catch {
-        return { ...DEFAULT_CONFIG, ...FILE_CONFIG };
-      }
-    }
-
-    function getFileConfig() {
-      const config = window.ZABBIX_MONITOR_TV_CONFIG && typeof window.ZABBIX_MONITOR_TV_CONFIG === "object"
-        ? window.ZABBIX_MONITOR_TV_CONFIG
-        : {};
-
-      return { ...config };
-    }
-
-    function pickConfigValue(saved, fileConfig, key, fallback, forceFileConfig) {
-      if (forceFileConfig && hasValue(fileConfig[key])) return fileConfig[key];
-      if (hasValue(saved[key])) return saved[key];
-      if (hasValue(fileConfig[key])) return fileConfig[key];
-      return fallback;
-    }
-
-    function pickConfigArray(saved, fileConfig, key, forceFileConfig) {
-      if (forceFileConfig && Array.isArray(fileConfig[key])) return fileConfig[key];
-      if (Array.isArray(saved[key])) return saved[key];
-      if (Array.isArray(fileConfig[key])) return fileConfig[key];
-      return [];
-    }
-
-    function hasValue(value) {
-      return value !== undefined && value !== null && value !== "";
-    }
-
-    function saveConfig(config) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-      state.config = config;
-    }
-
-    async function zabbixRequest(method, params) {
-      const response = await fetch(state.config.ZABBIX_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json-rpc",
-          "Authorization": `Bearer ${state.config.ZABBIX_TOKEN}`
-        },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          method,
-          params,
-          id: Date.now()
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status} - ${response.statusText}`);
-      }
-
-      const data = await response.json();
-
-      if (data.error) {
-        throw new Error(data.error.data || data.error.message || "Erro desconhecido na API");
-      }
-
-      return data.result;
-    }
 
     async function loadProblems() {
       if (state.loading) return;
-
-      if (shouldRequireSession()) {
-        const authenticated = await ensureBackendSession();
-        if (!authenticated) return;
-      }
 
       if (DEMO_MODE) {
         loadDemoProblems();
         return;
       }
 
-      if (shouldUseBackend()) {
-        loadProblemsFromBackend();
-        return;
-      }
-
-      if (!state.config.ZABBIX_API_URL || !state.config.ZABBIX_TOKEN) {
-        renderSetup();
-        openSettings();
-        return;
-      }
-
-      state.loading = true;
-      state.error = null;
-      elements.refreshButton.disabled = true;
-      elements.footerStatus.textContent = "Consultando API do Zabbix...";
-
-      try {
-        const problemParams = {
-          output: [
-            "eventid",
-            "objectid",
-            "name",
-            "severity",
-            "clock",
-            "r_eventid",
-            "r_clock",
-            "acknowledged",
-            "suppressed",
-            "cause_eventid",
-            "opdata"
-          ],
-          selectTags: "extend",
-          severities: state.config.SEVERITIES,
-          source: 0,
-          object: 0,
-          recent: true,
-          suppressed: false,
-          sortfield: "eventid",
-          sortorder: "DESC",
-          limit: Number(state.config.API_LIMIT)
-        };
-
-        if (state.config.MONITORED_GROUP_IDS.length > 0) {
-          problemParams.groupids = state.config.MONITORED_GROUP_IDS;
-        }
-
-        if (state.config.MONITORED_HOST_IDS.length > 0) {
-          problemParams.hostids = state.config.MONITORED_HOST_IDS;
-        }
-
-        const problems = await getProblems(problemParams);
-        const rootProblems = state.config.FETCH_MODE === "incidents"
-          ? problems.filter(problem => isRootCauseEvent(problem.cause_eventid))
-          : problems;
-        const triggerIds = [...new Set(rootProblems.map(problem => String(problem.objectid)).filter(Boolean))];
-
-        let triggerMap = new Map();
-        let hostMap = new Map();
-
-        if (triggerIds.length > 0) {
-          const triggers = await zabbixRequest("trigger.get", {
-            output: ["triggerid", "description", "priority", "status"],
-            triggerids: triggerIds,
-            selectHosts: ["hostid", "host", "name", "status"],
-            selectItems: ["itemid", "name", "key_", "status"],
-            expandDescription: true
-          });
-
-          triggerMap = new Map(triggers.map(trigger => [String(trigger.triggerid), trigger]));
-
-          const hostIds = [
-            ...new Set(
-              triggers
-                .flatMap(trigger => trigger.hosts || [])
-                .map(host => String(host.hostid))
-                .filter(Boolean)
-            )
-          ];
-
-          if (hostIds.length > 0) {
-            const hosts = await getHostsWithGroups(hostIds);
-            hostMap = new Map(hosts.map(host => [String(host.hostid), host]));
-          }
-        }
-
-        const monitoredProblems = rootProblems.filter(problem => isProblemMonitored(problem, triggerMap, hostMap));
-        state.ignoredInactiveCount = rootProblems.length - monitoredProblems.length;
-        state.problems = monitoredProblems.map(problem => normalizeProblem(problem, triggerMap, hostMap));
-        state.problems.sort(sortProblems);
-        state.lastRefreshAt = new Date();
-        render();
-      } catch (error) {
-        console.error(error);
-        state.error = error;
-        if (!state.lastRefreshAt) {
-          state.problems = [];
-          state.ignoredInactiveCount = 0;
-        }
-        render();
-      } finally {
-        state.loading = false;
-        elements.refreshButton.disabled = false;
-      }
-    }
-
-    function shouldUseBackend() {
-      return !DEMO_MODE && state.config.USE_BACKEND !== false;
-    }
-
-    function shouldRequireSession() {
-      return state.config.USE_BACKEND !== false;
-    }
-
-    async function ensureBackendSession() {
-      try {
-        const response = await fetch(state.config.AUTH_URL || DEFAULT_CONFIG.AUTH_URL, {
-          cache: "no-store",
-          credentials: "same-origin"
-        });
-        const data = await response.json().catch(() => ({}));
-
-        if (!response.ok || data.ok === false || data.needsSetup || !data.user) {
-          redirectToLogin();
-          return false;
-        }
-
-        return true;
-      } catch (error) {
-        console.error(error);
-        state.error = new Error("Falha ao validar login no backend.");
-        render();
-        return false;
-      }
+      await loadProblemsFromBackend();
     }
 
     function redirectToLogin() {
       const adminUrl = state.config.ADMIN_URL || DEFAULT_CONFIG.ADMIN_URL;
       const next = `${window.location.pathname}${window.location.search}${window.location.hash}`;
       window.location.href = `${adminUrl}?next=${encodeURIComponent(next)}`;
+    }
+
+    function applyServerConfig(serverConfig) {
+      const previousRefresh = Number(state.config.REFRESH_SECONDS);
+      const previousPageInterval = Number(state.config.PAGE_INTERVAL_SECONDS);
+      state.config = {
+        ...state.config,
+        ...serverConfig,
+        SORT_MODE: state.sortModeOverride || serverConfig.SORT_MODE || state.config.SORT_MODE
+      };
+
+      // Timers start with defaults, then follow the values delivered by the backend.
+      if (Number(state.config.REFRESH_SECONDS) !== previousRefresh) {
+        scheduleAutoRefresh();
+      }
+      if (Number(state.config.PAGE_INTERVAL_SECONDS) !== previousPageInterval) {
+        schedulePageRotation();
+      }
     }
 
     async function loadProblemsFromBackend() {
@@ -352,11 +117,8 @@
           throw error;
         }
 
-        if (data.config) {
-          state.config = { ...state.config, ...data.config };
-        }
+        if (data.config) applyServerConfig(data.config);
 
-        state.ignoredInactiveCount = Number(data.ignoredInactiveCount || 0);
         state.problems = (data.problems || []).map(normalizeBackendProblem);
         state.problems.sort(sortProblems);
         state.lastRefreshAt = new Date();
@@ -373,10 +135,10 @@
           return;
         }
 
+        // Keep the last valid snapshot visible during temporary Zabbix failures.
         state.error = error;
         if (!state.lastRefreshAt) {
           state.problems = [];
-          state.ignoredInactiveCount = 0;
         }
         render();
       } finally {
@@ -387,7 +149,7 @@
 
     function normalizeBackendProblem(problem) {
       return {
-        ...problem,
+        eventid: String(problem.eventid || ""),
         severity: Number(problem.severity),
         clock: Number(problem.clock),
         rClock: Number(problem.rClock) || 0,
@@ -397,118 +159,6 @@
         opdata: problem.opdata || "",
         status: problem.status || "INCIDENTE"
       };
-    }
-
-    async function getHostsWithGroups(hostIds) {
-      try {
-        return await zabbixRequest("host.get", {
-          output: ["hostid", "host", "name", "status"],
-          hostids: hostIds,
-          selectHostGroups: ["groupid", "name"]
-        });
-      } catch (error) {
-        console.warn("Falha usando selectHostGroups. Tentando selectGroups...", error);
-
-        return await zabbixRequest("host.get", {
-          output: ["hostid", "host", "name", "status"],
-          hostids: hostIds,
-          selectGroups: ["groupid", "name"]
-        });
-      }
-    }
-
-    async function getProblems(problemParams) {
-      try {
-        return await zabbixRequest("problem.get", problemParams);
-      } catch (error) {
-        const message = String(error.message || "");
-        const canFallback = state.config.FETCH_MODE === "incidents" &&
-          (message.includes("/source") || message.includes("/object") || message.includes("Invalid parameter"));
-
-        if (!canFallback) {
-          throw error;
-        }
-
-        console.warn("Modo incidentes estrito nao suportado por esta API. Repetindo consulta sem source/object.", error);
-        const fallbackParams = { ...problemParams };
-        delete fallbackParams.source;
-        delete fallbackParams.object;
-
-        return zabbixRequest("problem.get", fallbackParams);
-      }
-    }
-
-    function isProblemMonitored(problem, triggerMap, hostMap) {
-      const trigger = triggerMap.get(String(problem.objectid));
-
-      if (!trigger || !isEnabledStatus(trigger.status)) {
-        return false;
-      }
-
-      const triggerHosts = trigger.hosts || [];
-      const hasDisabledHost = triggerHosts.some(host => {
-        const enrichedHost = hostMap.get(String(host.hostid)) || host;
-        return !isEnabledStatus(enrichedHost.status);
-      });
-
-      if (hasDisabledHost) {
-        return false;
-      }
-
-      const triggerItems = trigger.items || [];
-      return triggerItems.every(item => isEnabledStatus(item.status));
-    }
-
-    function isEnabledStatus(status) {
-      return status === undefined ||
-        status === null ||
-        status === "" ||
-        String(status) === "0";
-    }
-
-    function normalizeProblem(problem, triggerMap, hostMap) {
-      const trigger = triggerMap.get(String(problem.objectid));
-      const primaryHostFromTrigger = trigger?.hosts?.[0] || null;
-      const hostFromMap = primaryHostFromTrigger ? hostMap.get(String(primaryHostFromTrigger.hostid)) : null;
-      const host = hostFromMap || primaryHostFromTrigger;
-      const hostName = host ? (host.name || host.host || "Host nao identificado") : "Host nao identificado";
-      const hostGroups = host ? (host.hostgroups || host.groups || []) : [];
-
-      return {
-        eventid: problem.eventid,
-        name: problem.name || trigger?.description || "Problema sem nome",
-        severity: Number(problem.severity),
-        clock: Number(problem.clock),
-        rEventId: problem.r_eventid,
-        rClock: Number(problem.r_clock) || 0,
-        acknowledged: problem.acknowledged,
-        suppressed: problem.suppressed,
-        causeEventId: problem.cause_eventid,
-        opdata: problem.opdata || "",
-        hostName,
-        clientName: getClientName(problem.tags, hostGroups, hostName),
-        status: isResolvedProblem(problem) ? "RESOLVIDO" : "INCIDENTE"
-      };
-    }
-
-    function isRootCauseEvent(causeEventId) {
-      return causeEventId === undefined ||
-        causeEventId === null ||
-        causeEventId === "" ||
-        causeEventId === "0" ||
-        causeEventId === 0;
-    }
-
-    function isResolvedProblem(problem) {
-      return hasNonZeroValue(problem.r_eventid) || hasNonZeroValue(problem.r_clock);
-    }
-
-    function hasNonZeroValue(value) {
-      return value !== undefined &&
-        value !== null &&
-        value !== "" &&
-        value !== "0" &&
-        value !== 0;
     }
 
     function sortProblems(a, b) {
@@ -638,7 +288,7 @@
       const rowHeight = calculateRowHeight(visibleProblems.length);
       elements.problemList.style.setProperty("--row-height", rowHeight);
       elements.problemList.innerHTML = visibleProblems.map(problem => `
-        <div class="problem-row ${problem.status === "RESOLVIDO" ? "resolved" : "incident"}">
+        <div class="problem-row${problem.status === "RESOLVIDO" ? " resolved" : ""}">
           <div class="event-time">${formatEventTime(problem.clock)}</div>
           <div class="severity-badge sev-${problem.severity}">${severityMap[problem.severity] || "N/D"}</div>
           <div class="entity">
@@ -731,7 +381,6 @@
           eventid: "9004",
           severity: 3,
           clock: now - 115,
-          rEventId: "9104",
           rClock: now - 5,
           hostName: "Filial Norte - Gateway",
           clientName: "Filial Norte",
@@ -743,7 +392,6 @@
           eventid: "9003",
           severity: 2,
           clock: now - 474,
-          rEventId: "0",
           rClock: 0,
           hostName: "Matriz - Access Point 01",
           clientName: "Matriz",
@@ -755,7 +403,6 @@
           eventid: "9002",
           severity: 4,
           clock: now - 5435,
-          rEventId: "0",
           rClock: 0,
           hostName: "Datacenter - Storage 01",
           clientName: "Datacenter",
@@ -767,7 +414,6 @@
           eventid: "9001",
           severity: 3,
           clock: now - 143940,
-          rEventId: "0",
           rClock: 0,
           hostName: "Datacenter - Storage 01",
           clientName: "Datacenter",
@@ -786,7 +432,6 @@
             eventid: String(8999 - index),
             severity,
             clock: now - (7200 + index * 1880),
-            rEventId: "0",
             rClock: 0,
             hostName: `Servidor demonstracao ${String(index + 1).padStart(2, "0")}`,
             clientName: index % 2 === 0 ? "Cliente Alfa" : "Cliente Beta",
@@ -807,10 +452,8 @@
         state.problems = [];
       }
 
-      state.ignoredInactiveCount = 0;
       state.problems.sort(sortProblems);
       state.lastRefreshAt = new Date();
-      elements.settingsDrawer.classList.remove("open");
       render();
       elements.footerStatus.textContent += " - modo demo";
     }
@@ -830,49 +473,6 @@
         if (counts[problem.severity] !== undefined) counts[problem.severity] += 1;
         return counts;
       }, { 2: 0, 3: 0, 4: 0, 5: 0 });
-    }
-
-    function getClientName(tags, hostgroups, hostName) {
-      const tagNamesForClient = ["cliente", "client", "customer", "empresa", "tenant"];
-      const clientTag = (tags || []).find(tag => tagNamesForClient.includes(String(tag.tag || "").toLowerCase().trim()));
-
-      if (clientTag && clientTag.value) {
-        return clientTag.value;
-      }
-
-      const ignoredGroups = [
-        "templates",
-        "linux servers",
-        "windows servers",
-        "zabbix servers",
-        "discovered hosts",
-        "network devices",
-        "servidores",
-        "clientes",
-        "infraestrutura",
-        "hypervisors",
-        "switches",
-        "firewalls",
-        "roteadores",
-        "appliances",
-        "vmware",
-        "snmp"
-      ];
-
-      const validGroup = (hostgroups || []).find(group => {
-        const groupName = String(group.name || "").toLowerCase().trim();
-        return groupName && !ignoredGroups.includes(groupName);
-      });
-
-      if (validGroup && validGroup.name) {
-        return validGroup.name;
-      }
-
-      if (hostName.includes(" - ")) {
-        return hostName.split(" - ")[0].trim();
-      }
-
-      return hostName;
     }
 
     function updateClock() {
@@ -933,13 +533,6 @@
         .replaceAll("'", "&#039;");
     }
 
-    function parseIds(value) {
-      return String(value || "")
-        .split(",")
-        .map(item => item.trim())
-        .filter(Boolean);
-    }
-
     function clampNumber(value, min, max, fallback) {
       const number = Number(value);
       if (!Number.isFinite(number)) return fallback;
@@ -947,31 +540,7 @@
     }
 
     function openSettings() {
-      if (shouldUseBackend()) {
-        window.location.href = state.config.ADMIN_URL || DEFAULT_CONFIG.ADMIN_URL;
-        return;
-      }
-
-      fillSettingsForm();
-      elements.settingsDrawer.classList.add("open");
-      document.getElementById("apiUrl").focus();
-    }
-
-    function closeSettings() {
-      elements.settingsDrawer.classList.remove("open");
-    }
-
-    function fillSettingsForm() {
-      const form = elements.settingsForm;
-      form.apiUrl.value = state.config.ZABBIX_API_URL || "";
-      form.apiToken.value = state.config.ZABBIX_TOKEN || "";
-      form.refreshSeconds.value = state.config.REFRESH_SECONDS;
-      form.apiLimit.value = state.config.API_LIMIT;
-      form.pageIntervalSeconds.value = state.config.PAGE_INTERVAL_SECONDS;
-      form.sortMode.value = state.config.SORT_MODE;
-      form.fetchMode.value = state.config.FETCH_MODE;
-      form.groupIds.value = state.config.MONITORED_GROUP_IDS.join(", ");
-      form.hostIds.value = state.config.MONITORED_HOST_IDS.join(", ");
+      window.location.href = state.config.ADMIN_URL || DEFAULT_CONFIG.ADMIN_URL;
     }
 
     function scheduleAutoRefresh() {
@@ -1003,67 +572,25 @@
       }, intervalSeconds * 1000);
     }
 
-    elements.settingsForm.addEventListener("submit", event => {
-      event.preventDefault();
-      const form = elements.settingsForm;
-
-      saveConfig({
-        ...state.config,
-        ZABBIX_API_URL: form.apiUrl.value.trim(),
-        ZABBIX_TOKEN: form.apiToken.value.trim(),
-        CONFIG_VERSION: DEFAULT_CONFIG.CONFIG_VERSION,
-        REFRESH_SECONDS: clampNumber(form.refreshSeconds.value, 5, 900, DEFAULT_CONFIG.REFRESH_SECONDS),
-        API_LIMIT: clampNumber(form.apiLimit.value, 20, 5000, DEFAULT_CONFIG.API_LIMIT),
-        PAGE_SIZE: DEFAULT_CONFIG.PAGE_SIZE,
-        PAGE_INTERVAL_SECONDS: clampNumber(
-          form.pageIntervalSeconds.value,
-          5,
-          120,
-          DEFAULT_CONFIG.PAGE_INTERVAL_SECONDS
-        ),
-        SORT_MODE: form.sortMode.value,
-        FETCH_MODE: form.fetchMode.value,
-        MONITORED_GROUP_IDS: parseIds(form.groupIds.value),
-        MONITORED_HOST_IDS: parseIds(form.hostIds.value)
-      });
-
-      scheduleAutoRefresh();
-      schedulePageRotation();
-      state.currentPage = 0;
-      closeSettings();
-      loadProblems();
-    });
-
     elements.refreshButton.addEventListener("click", loadProblems);
     elements.settingsButton.addEventListener("click", openSettings);
-    elements.closeSettings.addEventListener("click", closeSettings);
     elements.sortButtons.forEach(button => {
       button.addEventListener("click", () => {
         const sortMode = button.dataset.sortMode;
         if (!sortMode || sortMode === state.config.SORT_MODE) return;
 
-        saveConfig({
-          ...state.config,
-          SORT_MODE: sortMode
-        });
-
+        state.sortModeOverride = sortMode;
+        state.config.SORT_MODE = sortMode;
         state.problems.sort(sortProblems);
         state.currentPage = 0;
         render();
       });
-    });
-    elements.settingsDrawer.addEventListener("click", event => {
-      if (event.target === elements.settingsDrawer) closeSettings();
     });
 
     document.addEventListener("keydown", event => {
       if (event.key === "F2") {
         event.preventDefault();
         openSettings();
-      }
-
-      if (event.key === "Escape" && elements.settingsDrawer.classList.contains("open")) {
-        closeSettings();
       }
     });
 
