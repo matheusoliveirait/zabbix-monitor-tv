@@ -104,67 +104,6 @@
     </footer>
   </div>
 
-  <div class="drawer-backdrop" id="settingsDrawer" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
-    <form class="drawer" id="settingsForm">
-      <div class="drawer-head">
-        <h2 class="drawer-title" id="settingsTitle">Configuracao Zabbix</h2>
-      </div>
-      <div class="drawer-body">
-        <div class="field">
-          <label for="apiUrl">URL da API</label>
-          <input id="apiUrl" name="apiUrl" type="url" required placeholder="http://servidor/zabbix/api_jsonrpc.php" />
-        </div>
-        <div class="field">
-          <label for="apiToken">Token de API</label>
-          <input id="apiToken" name="apiToken" type="password" autocomplete="off" placeholder="Cole o token aqui" />
-        </div>
-        <div class="field">
-          <label for="refreshSeconds">Atualizacao em segundos</label>
-          <input id="refreshSeconds" name="refreshSeconds" type="number" min="5" max="900" step="5" required />
-        </div>
-        <div class="field">
-          <label for="apiLimit">Limite da API</label>
-          <input id="apiLimit" name="apiLimit" type="number" min="20" max="5000" step="10" required />
-        </div>
-        <div class="field">
-          <label for="pageIntervalSeconds">Troca de pagina em segundos</label>
-          <input id="pageIntervalSeconds" name="pageIntervalSeconds" type="number" min="5" max="120" step="5" required />
-        </div>
-        <div class="field">
-          <label for="sortMode">Ordenacao dos incidentes</label>
-          <select id="sortMode" name="sortMode" required>
-            <option value="recent">Mais recentes</option>
-            <option value="severity">Criticidade primeiro</option>
-            <option value="duration">Duracao primeiro</option>
-            <option value="client">Cliente / host</option>
-            <option value="problem">Problema</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="fetchMode">Escopo da consulta</label>
-          <select id="fetchMode" name="fetchMode" required>
-            <option value="incidents">Incidentes ativos</option>
-            <option value="problems">Todos os problemas ativos</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="groupIds">IDs de grupos</label>
-          <input id="groupIds" name="groupIds" type="text" placeholder="12, 15, 18" />
-        </div>
-        <div class="field">
-          <label for="hostIds">IDs de hosts</label>
-          <input id="hostIds" name="hostIds" type="text" placeholder="10084, 10120" />
-        </div>
-        <p class="hint">Use um token do mesmo usuario que ve o dashboard atual. Se o widget do Zabbix nao filtra grupos ou hosts, deixe estes campos vazios.</p>
-      </div>
-      <div class="drawer-foot">
-        <button class="action" id="closeSettings" type="button">Cancelar</button>
-        <button class="action primary" type="submit">Salvar</button>
-      </div>
-    </form>
-  </div>
-
-  <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
