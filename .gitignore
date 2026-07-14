@@ -9,11 +9,11 @@ Desktop.ini
 
 # Dependencias futuras
 node_modules/
+.dotnet/
 
 # Configuracoes locais opcionais
 .env
 .env.*
-config.js
 config/app.php
 
 # Banco local / dumps
