@@ -12,6 +12,9 @@ function validate_zabbix_api_url(string $url): string
     if ($url === '') {
         json_error('Informe a URL da API do Zabbix.', 422);
     }
+    if (strlen($url) > 512) {
+        json_error('A URL da API deve ter no maximo 512 caracteres.', 422);
+    }
 
     foreach ($templateTokens as $token) {
         if (stripos($url, $token) !== false) {
@@ -67,7 +70,11 @@ try {
 
         $tokenEncrypted = $current['zabbix_token_encrypted'];
         if (!empty($input['zabbix_token'])) {
-            $tokenEncrypted = encrypt_secret((string)$input['zabbix_token']);
+            $token = trim((string)$input['zabbix_token']);
+            if (strlen($token) > 8192) {
+                json_error('O token excede o tamanho permitido.', 422);
+            }
+            $tokenEncrypted = encrypt_secret($token);
         } elseif (!empty($input['clear_zabbix_token'])) {
             $tokenEncrypted = null;
         }
@@ -94,8 +101,8 @@ try {
             clamp_int($input['page_interval_seconds'] ?? 15, 5, 120, 15),
             $sortMode,
             $fetchMode,
-            encode_ids(parse_ids($input['monitored_group_ids'] ?? [])),
-            encode_ids(parse_ids($input['monitored_host_ids'] ?? [])),
+            encode_ids($input['monitored_group_ids'] ?? []),
+            encode_ids($input['monitored_host_ids'] ?? []),
         ]);
 
         json_response(['ok' => true]);
