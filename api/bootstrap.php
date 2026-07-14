@@ -6,6 +6,12 @@ error_reporting(E_ALL);
 ini_set('display_errors', '0');
 
 header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store');
+header('X-Content-Type-Options: nosniff');
+
+final class ZabbixApiException extends RuntimeException
+{
+}
 
 function app_config(): array
 {
@@ -31,14 +37,45 @@ function start_app_session(): void
     }
 
     $config = app_config();
+    $secureCookie = (!empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off') ||
+        (int)($_SERVER['SERVER_PORT'] ?? 0) === 443;
+    ini_set('session.use_strict_mode', '1');
     session_name((string)($config['session_name'] ?? 'zabbix_monitor_tv_session'));
     session_set_cookie_params([
         'lifetime' => 0,
         'path' => '/',
+        'secure' => $secureCookie,
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
     session_start();
+}
+
+function login_user(int $userId): void
+{
+    start_app_session();
+    session_regenerate_id(true);
+    $_SESSION['user_id'] = $userId;
+}
+
+function logout_user(): void
+{
+    start_app_session();
+    $_SESSION = [];
+
+    if (ini_get('session.use_cookies')) {
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', [
+            'expires' => time() - 42000,
+            'path' => $params['path'],
+            'domain' => $params['domain'],
+            'secure' => $params['secure'],
+            'httponly' => $params['httponly'],
+            'samesite' => $params['samesite'] ?? 'Lax',
+        ]);
+    }
+
+    session_destroy();
 }
 
 function db(): PDO
@@ -138,11 +175,21 @@ function clamp_int(mixed $value, int $min, int $max, int $fallback): int
 
 function parse_ids(mixed $value): array
 {
-    if (is_array($value)) {
-        return array_values(array_filter(array_map('strval', $value), static fn($item) => trim($item) !== ''));
+    $items = is_array($value) ? $value : explode(',', (string)$value);
+    $ids = [];
+
+    foreach ($items as $item) {
+        $id = trim((string)$item);
+        if ($id === '') {
+            continue;
+        }
+        if (!ctype_digit($id) || $id === '0') {
+            json_error('IDs de grupos e hosts devem ser numeros positivos.', 422);
+        }
+        $ids[$id] = $id;
     }
 
-    return array_values(array_filter(array_map('trim', explode(',', (string)$value)), static fn($item) => $item !== ''));
+    return array_values($ids);
 }
 
 function encode_ids(array $ids): string
@@ -210,14 +257,8 @@ function frontend_config_from_settings(array $settings): array
 {
     return [
         'REFRESH_SECONDS' => (int)$settings['refresh_seconds'],
-        'API_LIMIT' => (int)$settings['api_limit'],
         'PAGE_INTERVAL_SECONDS' => (int)$settings['page_interval_seconds'],
         'SORT_MODE' => $settings['sort_mode'],
-        'FETCH_MODE' => $settings['fetch_mode'],
-        'MONITORED_GROUP_IDS' => decode_ids($settings['monitored_group_ids'] ?? ''),
-        'MONITORED_HOST_IDS' => decode_ids($settings['monitored_host_ids'] ?? ''),
-        'SEVERITIES' => [2, 3, 4, 5],
-        'USE_BACKEND' => true,
     ];
 }
 
@@ -251,7 +292,7 @@ function zabbix_request(string $method, array $params, string $apiUrl, string $t
         curl_close($curl);
 
         if ($body === false || $httpCode >= 400) {
-            throw new RuntimeException($curlError ?: 'HTTP ' . $httpCode . ' ao consultar Zabbix.');
+            throw new ZabbixApiException($curlError ?: 'HTTP ' . $httpCode . ' ao consultar Zabbix.');
         }
     } else {
         $context = stream_context_create([
@@ -265,18 +306,18 @@ function zabbix_request(string $method, array $params, string $apiUrl, string $t
         $body = file_get_contents($apiUrl, false, $context);
 
         if ($body === false) {
-            throw new RuntimeException('Falha ao consultar Zabbix.');
+            throw new ZabbixApiException('Falha ao consultar Zabbix.');
         }
     }
 
     $data = json_decode((string)$body, true);
     if (!is_array($data)) {
-        throw new RuntimeException('Resposta invalida do Zabbix.');
+        throw new ZabbixApiException('Resposta invalida do Zabbix.');
     }
 
     if (isset($data['error'])) {
         $message = $data['error']['data'] ?? $data['error']['message'] ?? 'Erro desconhecido na API do Zabbix.';
-        throw new RuntimeException((string)$message);
+        throw new ZabbixApiException((string)$message);
     }
 
     return $data['result'] ?? [];
@@ -284,5 +325,16 @@ function zabbix_request(string $method, array $params, string $apiUrl, string $t
 
 function handle_api_exception(Throwable $error): never
 {
-    json_error($error->getMessage(), 500);
+    error_log(sprintf(
+        '[Zabbix Monitor TV] %s: %s in %s:%d',
+        $error::class,
+        $error->getMessage(),
+        $error->getFile(),
+        $error->getLine()
+    ));
+
+    $message = $error instanceof ZabbixApiException
+        ? $error->getMessage()
+        : 'Erro interno no servidor. Consulte o log do PHP.';
+    json_error($message, 500);
 }
