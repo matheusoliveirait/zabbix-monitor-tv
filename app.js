@@ -43,6 +43,7 @@
       clockDate: document.getElementById("clockDate"),
       refreshButton: document.getElementById("refreshButton"),
       settingsButton: document.getElementById("settingsButton"),
+      fullscreenButton: document.getElementById("fullscreenButton"),
       totalCard: document.getElementById("totalCard"),
       totalProblems: document.getElementById("totalProblems"),
       totalNote: document.getElementById("totalNote"),
@@ -543,6 +544,53 @@
       window.location.href = state.config.ADMIN_URL || DEFAULT_CONFIG.ADMIN_URL;
     }
 
+    function getFullscreenElement() {
+      return document.fullscreenElement || document.webkitFullscreenElement || null;
+    }
+
+    function supportsFullscreen() {
+      const root = document.documentElement;
+      return Boolean(
+        (root.requestFullscreen || root.webkitRequestFullscreen) &&
+        (document.exitFullscreen || document.webkitExitFullscreen)
+      );
+    }
+
+    function updateFullscreenButton() {
+      const isFullscreen = Boolean(getFullscreenElement());
+      const isSupported = supportsFullscreen();
+      elements.fullscreenButton.classList.toggle("is-active", isFullscreen);
+      elements.fullscreenButton.setAttribute("aria-pressed", String(isFullscreen));
+      elements.fullscreenButton.disabled = !isSupported;
+      const label = !isSupported
+        ? "Tela cheia indisponivel neste navegador"
+        : isFullscreen ? "Sair da tela cheia" : "Entrar em tela cheia";
+      elements.fullscreenButton.title = label;
+      elements.fullscreenButton.setAttribute("aria-label", label);
+    }
+
+    async function toggleFullscreen() {
+      if (!supportsFullscreen()) return;
+
+      elements.fullscreenButton.disabled = true;
+
+      try {
+        if (getFullscreenElement()) {
+          const exitFullscreen = document.exitFullscreen || document.webkitExitFullscreen;
+          await exitFullscreen.call(document);
+        } else {
+          const root = document.documentElement;
+          const requestFullscreen = root.requestFullscreen || root.webkitRequestFullscreen;
+          await requestFullscreen.call(root);
+        }
+      } catch (error) {
+        console.error("Nao foi possivel alterar o modo de tela cheia.", error);
+      } finally {
+        elements.fullscreenButton.disabled = false;
+        updateFullscreenButton();
+      }
+    }
+
     function scheduleAutoRefresh() {
       if (state.refreshTimer) {
         clearInterval(state.refreshTimer);
@@ -574,6 +622,7 @@
 
     elements.refreshButton.addEventListener("click", loadProblems);
     elements.settingsButton.addEventListener("click", openSettings);
+    elements.fullscreenButton.addEventListener("click", toggleFullscreen);
     elements.sortButtons.forEach(button => {
       button.addEventListener("click", () => {
         const sortMode = button.dataset.sortMode;
@@ -603,9 +652,13 @@
       }
     });
 
+    document.addEventListener("fullscreenchange", updateFullscreenButton);
+    document.addEventListener("webkitfullscreenchange", updateFullscreenButton);
+
     window.addEventListener("resize", updateViewportMode);
 
     updateViewportMode();
+    updateFullscreenButton();
     updateClock();
     renderSetup();
     scheduleAutoRefresh();
