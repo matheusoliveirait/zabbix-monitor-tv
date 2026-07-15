@@ -114,24 +114,15 @@
       stroke-linejoin: round;
     }
 
-    .eyebrow {
-      color: var(--info);
-      font-size: clamp(13px, 1.1vw, 18px);
-      line-height: 1;
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-    }
-
     h1 {
-      margin: 8px 0 0;
+      margin: 0;
+      padding-block: 1px;
       font-size: clamp(30px, 3.6vw, 58px);
-      line-height: 0.95;
+      line-height: 1.1;
       font-weight: 800;
       letter-spacing: 0;
       white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      overflow: visible;
     }
 
     .top-right {
@@ -151,7 +142,7 @@
     }
 
     .utility-actions {
-      display: none;
+      display: flex;
       align-items: center;
       gap: 10px;
     }
@@ -199,6 +190,15 @@
       cursor: progress;
       color: var(--muted-2);
       transform: none;
+    }
+
+    .fullscreen-exit-icon,
+    .icon-button.is-active .fullscreen-enter-icon {
+      display: none;
+    }
+
+    .icon-button.is-active .fullscreen-exit-icon {
+      display: block;
     }
 
     .summary {
@@ -872,12 +872,7 @@
         gap: 14px;
       }
 
-      .eyebrow {
-        font-size: clamp(13px, 1vw, 16px);
-      }
-
       h1 {
-        margin-top: 4px;
         font-size: clamp(28px, 3vw, 48px);
       }
 
@@ -941,6 +936,10 @@
 
       .topbar {
         grid-template-columns: 1fr;
+      }
+
+      h1 {
+        white-space: normal;
       }
 
       .top-right {
