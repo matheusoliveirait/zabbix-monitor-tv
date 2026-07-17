@@ -1,6 +1,6 @@
 # Contribuindo
 
-Obrigado por ajudar a melhorar o Zabbix Monitor TV.
+Obrigado por ajudar a melhorar a Central de Incidentes.
 
 ## Antes de comecar
 
