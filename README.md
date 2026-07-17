@@ -99,7 +99,8 @@ Os cenarios usam apenas nomes ficticios.
 - `login.html`: primeiro acesso e autenticacao.
 - `admin.php` e `admin.html`: protecao e interface de configuracoes.
 - `app.js`, `login.js` e `admin.js`: comportamento do frontend.
-- `styles.css`: layout responsivo para TV.
+- `dashboard.css`: layout responsivo e visual do painel para TV.
+- `styles.css`: estilos das telas de login e configuracoes.
 - `api/`: autenticacao, configuracoes e integracao com Zabbix.
 - `database/schema.sql`: estrutura inicial do banco.
 - `config/app.example.php`: modelo seguro da configuracao local.
