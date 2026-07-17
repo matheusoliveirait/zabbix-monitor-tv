@@ -326,7 +326,7 @@ function zabbix_request(string $method, array $params, string $apiUrl, string $t
 function handle_api_exception(Throwable $error): never
 {
     error_log(sprintf(
-        '[Zabbix Monitor TV] %s: %s in %s:%d',
+        '[Central de Incidentes] %s: %s in %s:%d',
         $error::class,
         $error->getMessage(),
         $error->getFile(),
