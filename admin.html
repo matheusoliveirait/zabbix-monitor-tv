@@ -3,63 +3,35 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Zabbix Monitor TV - Administracao</title>
+  <title>Central de Incidentes - Configuracoes</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body class="admin-page">
   <main class="admin-shell">
     <header class="admin-header">
-      <div>
-        <div class="eyebrow">Zabbix Monitor TV</div>
-        <h1>Configuracoes</h1>
+      <div class="admin-brand">
+        <div class="admin-brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M3 12h4l2-6 4 12 2-6h6" />
+          </svg>
+        </div>
+        <div>
+          <div class="admin-product">Central de Incidentes</div>
+          <h1>Configuracoes</h1>
+        </div>
       </div>
       <a class="admin-link" href="index.html">Voltar ao painel</a>
     </header>
 
-    <section class="admin-panel" id="messagePanel" role="status" aria-live="polite" hidden>
+    <section class="admin-message" id="messagePanel" role="status" aria-live="polite" hidden>
       <div id="messageText"></div>
     </section>
 
-    <section class="admin-panel" id="setupPanel" hidden>
-      <h2>Primeiro acesso</h2>
-      <p class="admin-muted">Crie o usuario administrador inicial para proteger as configuracoes do painel.</p>
-      <form id="setupForm" class="admin-form">
-        <label>
-          Nome
-          <input name="name" type="text" value="Administrador" required />
-        </label>
-        <label>
-          Usuario
-          <input name="username" type="text" value="admin" autocomplete="username" required />
-        </label>
-        <label>
-          Senha
-          <input name="password" type="password" autocomplete="new-password" minlength="8" required />
-        </label>
-        <button class="action primary" type="submit">Criar administrador</button>
-      </form>
-    </section>
-
-    <section class="admin-panel" id="loginPanel" hidden>
-      <h2>Login</h2>
-      <form id="loginForm" class="admin-form">
-        <label>
-          Usuario
-          <input name="username" type="text" autocomplete="username" required />
-        </label>
-        <label>
-          Senha
-          <input name="password" type="password" autocomplete="current-password" required />
-        </label>
-        <button class="action primary" type="submit">Entrar</button>
-      </form>
-    </section>
-
-    <section class="admin-panel" id="settingsPanel" hidden>
+    <section class="admin-panel">
       <div class="admin-panel-head">
         <div>
-          <h2>Zabbix e painel</h2>
-          <p class="admin-muted" id="sessionText">Sessao ativa</p>
+          <h2>Zabbix e exibicao</h2>
+          <p class="admin-muted" id="sessionText">Carregando sessao...</p>
         </div>
         <button class="action" id="logoutButton" type="button">Sair</button>
       </div>
