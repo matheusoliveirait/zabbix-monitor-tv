@@ -1,4 +1,4 @@
-# Zabbix Monitor TV
+# Central de Incidentes
 
 Painel web open source para exibir incidentes do Zabbix em TVs e telas de NOC com leitura rapida, configuracao simples e sem dependencia do Grafana.
 
@@ -96,8 +96,9 @@ Os cenarios usam apenas nomes ficticios.
 
 - `index.php`: protege e entrega o painel.
 - `index.html`: interface para TV.
-- `admin.html`: primeiro acesso, login e configuracoes.
-- `app.js` e `admin.js`: comportamento do frontend.
+- `login.html`: primeiro acesso e autenticacao.
+- `admin.php` e `admin.html`: protecao e interface de configuracoes.
+- `app.js`, `login.js` e `admin.js`: comportamento do frontend.
 - `styles.css`: layout responsivo para TV.
 - `api/`: autenticacao, configuracoes e integracao com Zabbix.
 - `database/schema.sql`: estrutura inicial do banco.
