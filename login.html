@@ -4,22 +4,21 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Central de Incidentes - Acesso</title>
+  <link rel="icon" href="assets/favicon.svg?v=1" type="image/svg+xml" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body class="auth-page">
   <main class="auth-shell">
     <section class="auth-visual" aria-label="Previa da Central de Incidentes">
-      <div class="auth-brand">
-        <div class="auth-brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 24 24">
-            <path d="M3 12h4l2-6 4 12 2-6h6" />
-          </svg>
-        </div>
+      <a class="auth-brand" href="index.html" data-home-link aria-label="Ir para o painel">
+        <span class="auth-brand-mark" aria-hidden="true">
+          <img src="assets/logo-mark.svg" alt="" />
+        </span>
         <div>
           <strong>Central de Incidentes</strong>
           <span>Monitoramento Zabbix</span>
         </div>
-      </div>
+      </a>
 
       <div class="dashboard-preview" aria-hidden="true">
         <div class="preview-header">
@@ -60,12 +59,12 @@
 
     <section class="auth-access">
       <div class="auth-form-wrap">
-        <div class="auth-mobile-brand">
-          <div class="auth-brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M3 12h4l2-6 4 12 2-6h6" /></svg>
-          </div>
+        <a class="auth-mobile-brand" href="index.html" data-home-link aria-label="Ir para o painel">
+          <span class="auth-brand-mark" aria-hidden="true">
+            <img src="assets/logo-mark.svg" alt="" />
+          </span>
           <strong>Central de Incidentes</strong>
-        </div>
+        </a>
 
         <section class="auth-message" id="messagePanel" role="status" aria-live="polite" hidden>
           <div id="messageText"></div>

@@ -24,7 +24,14 @@
       pageTimer: null,
       currentPage: 0,
       sortModeOverride: null,
-      pageTransitioning: false
+      pageTransitioning: false,
+      fontEditor: {
+        open: false,
+        dirty: false,
+        saving: false,
+        savedIncident: 100,
+        savedCard: 100
+      }
     };
 
     const severityMap = {
@@ -46,6 +53,17 @@
       tv: document.querySelector(".tv"),
       clockTime: document.getElementById("clockTime"),
       clockDate: document.getElementById("clockDate"),
+      homeLink: document.querySelector("[data-home-link]"),
+      fontSizeButton: document.getElementById("fontSizeButton"),
+      fontSizePanel: document.getElementById("fontSizePanel"),
+      fontCloseButton: document.getElementById("fontCloseButton"),
+      fontPreviewState: document.getElementById("fontPreviewState"),
+      incidentFontQuickValue: document.getElementById("incidentFontQuickValue"),
+      cardFontQuickValue: document.getElementById("cardFontQuickValue"),
+      fontStepButtons: document.querySelectorAll("[data-font-target][data-font-step]"),
+      fontResetButton: document.getElementById("fontResetButton"),
+      fontDiscardButton: document.getElementById("fontDiscardButton"),
+      fontSaveButton: document.getElementById("fontSaveButton"),
       refreshButton: document.getElementById("refreshButton"),
       settingsButton: document.getElementById("settingsButton"),
       fullscreenButton: document.getElementById("fullscreenButton"),
@@ -88,12 +106,23 @@
     function applyServerConfig(serverConfig) {
       const previousRefresh = Number(state.config.REFRESH_SECONDS);
       const previousPageInterval = Number(state.config.PAGE_INTERVAL_SECONDS);
+      const activeFontPreview = state.fontEditor.open && state.fontEditor.dirty
+        ? {
+            INCIDENT_FONT_SCALE: state.config.INCIDENT_FONT_SCALE,
+            CARD_FONT_SCALE: state.config.CARD_FONT_SCALE
+          }
+        : {};
       state.config = {
         ...state.config,
         ...serverConfig,
+        ...activeFontPreview,
         SORT_MODE: state.sortModeOverride || serverConfig.SORT_MODE || state.config.SORT_MODE
       };
       applyPanelCustomization();
+      elements.fontSizeButton.disabled = false;
+      if (state.fontEditor.open && !state.fontEditor.dirty) {
+        captureFontEditorValues();
+      }
 
       // Timers start with defaults, then follow the values delivered by the backend.
       if (Number(state.config.REFRESH_SECONDS) !== previousRefresh) {
@@ -122,6 +151,13 @@
     function applyDemoSettings(renderChanges = false) {
       if (!DEMO_MODE) return;
 
+      const activeFontPreview = state.fontEditor.open && state.fontEditor.dirty
+        ? {
+            INCIDENT_FONT_SCALE: state.config.INCIDENT_FONT_SCALE,
+            CARD_FONT_SCALE: state.config.CARD_FONT_SCALE
+          }
+        : {};
+
       try {
         const saved = JSON.parse(localStorage.getItem(PREVIEW_STORAGE_KEY) || "{}");
         state.config = {
@@ -132,12 +168,17 @@
           PAGE_TRANSITION: saved.page_transition || state.config.PAGE_TRANSITION,
           INCIDENT_FONT_SCALE: saved.incident_font_scale ?? state.config.INCIDENT_FONT_SCALE,
           CARD_FONT_SCALE: saved.card_font_scale ?? state.config.CARD_FONT_SCALE,
+          ...activeFontPreview,
         };
       } catch {
         state.config = { ...state.config };
       }
 
       applyPanelCustomization();
+      elements.fontSizeButton.disabled = false;
+      if (state.fontEditor.open && !state.fontEditor.dirty) {
+        captureFontEditorValues();
+      }
       if (!renderChanges) return;
 
       state.sortModeOverride = null;
@@ -614,6 +655,151 @@
       return Math.max(min, Math.min(max, number));
     }
 
+    function getFontScale(key) {
+      return clampNumber(state.config[key], 85, 125, 100);
+    }
+
+    function captureFontEditorValues() {
+      state.fontEditor.savedIncident = getFontScale("INCIDENT_FONT_SCALE");
+      state.fontEditor.savedCard = getFontScale("CARD_FONT_SCALE");
+      state.fontEditor.dirty = false;
+      updateFontEditor();
+    }
+
+    function updateFontEditor(message = "") {
+      const incidentScale = getFontScale("INCIDENT_FONT_SCALE");
+      const cardScale = getFontScale("CARD_FONT_SCALE");
+      const isDirty = incidentScale !== state.fontEditor.savedIncident || cardScale !== state.fontEditor.savedCard;
+      state.fontEditor.dirty = isDirty;
+
+      elements.incidentFontQuickValue.textContent = `${incidentScale}%`;
+      elements.cardFontQuickValue.textContent = `${cardScale}%`;
+      elements.fontPreviewState.textContent = message || (isDirty ? "Previa ativa - alteracao pendente" : "Valores atuais");
+      elements.fontPreviewState.dataset.state = isDirty ? "dirty" : "clean";
+      elements.fontDiscardButton.disabled = !isDirty || state.fontEditor.saving;
+      elements.fontSaveButton.disabled = !isDirty || state.fontEditor.saving;
+
+      elements.fontStepButtons.forEach(button => {
+        const scale = button.dataset.fontTarget === "incident" ? incidentScale : cardScale;
+        const step = Number(button.dataset.fontStep);
+        button.disabled = state.fontEditor.saving || (step < 0 ? scale <= 85 : scale >= 125);
+      });
+    }
+
+    function setFontScales(incidentScale, cardScale, message = "") {
+      state.config.INCIDENT_FONT_SCALE = clampNumber(incidentScale, 85, 125, 100);
+      state.config.CARD_FONT_SCALE = clampNumber(cardScale, 85, 125, 100);
+      applyPanelCustomization();
+      updateFontEditor(message);
+    }
+
+    function openFontEditor() {
+      if (!state.fontEditor.open) {
+        state.fontEditor.open = true;
+        captureFontEditorValues();
+      }
+      elements.fontSizePanel.hidden = false;
+      elements.fontSizeButton.classList.add("is-active");
+      elements.fontSizeButton.setAttribute("aria-expanded", "true");
+      updateFontEditor();
+    }
+
+    function closeFontEditor(discardChanges = false) {
+      if (discardChanges && state.fontEditor.dirty) {
+        setFontScales(state.fontEditor.savedIncident, state.fontEditor.savedCard);
+      }
+      if (state.fontEditor.dirty) {
+        updateFontEditor("Aplique ou descarte a previa antes de fechar");
+        return;
+      }
+
+      state.fontEditor.open = false;
+      elements.fontSizePanel.hidden = true;
+      elements.fontSizeButton.classList.remove("is-active");
+      elements.fontSizeButton.setAttribute("aria-expanded", "false");
+      elements.fontSizeButton.focus();
+    }
+
+    function toggleFontEditor() {
+      if (state.fontEditor.open) {
+        closeFontEditor();
+        return;
+      }
+      openFontEditor();
+    }
+
+    function changeFontScale(target, step) {
+      if (target === "incident") {
+        setFontScales(getFontScale("INCIDENT_FONT_SCALE") + step, getFontScale("CARD_FONT_SCALE"));
+        return;
+      }
+      setFontScales(getFontScale("INCIDENT_FONT_SCALE"), getFontScale("CARD_FONT_SCALE") + step);
+    }
+
+    function saveDemoFontScales() {
+      let settings = {};
+      try {
+        settings = JSON.parse(localStorage.getItem(PREVIEW_STORAGE_KEY) || "{}");
+      } catch {
+        settings = {};
+      }
+      settings.incident_font_scale = getFontScale("INCIDENT_FONT_SCALE");
+      settings.card_font_scale = getFontScale("CARD_FONT_SCALE");
+      localStorage.setItem(PREVIEW_STORAGE_KEY, JSON.stringify(settings));
+    }
+
+    async function saveFontScales() {
+      if (!state.fontEditor.dirty || state.fontEditor.saving) return;
+
+      state.fontEditor.saving = true;
+      updateFontEditor("Salvando alteracoes...");
+
+      try {
+        if (DEMO_MODE) {
+          saveDemoFontScales();
+        } else {
+          const response = await fetch("api/settings.php", {
+            method: "PATCH",
+            credentials: "same-origin",
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              incident_font_scale: getFontScale("INCIDENT_FONT_SCALE"),
+              card_font_scale: getFontScale("CARD_FONT_SCALE")
+            })
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok || data.ok === false) {
+            const error = new Error(data.error || `HTTP ${response.status}`);
+            error.requiresLogin = response.status === 401;
+            throw error;
+          }
+        }
+
+        state.fontEditor.savedIncident = getFontScale("INCIDENT_FONT_SCALE");
+        state.fontEditor.savedCard = getFontScale("CARD_FONT_SCALE");
+        state.fontEditor.dirty = false;
+        state.fontEditor.saving = false;
+        updateFontEditor("Alteracoes aplicadas");
+        setTimeout(() => closeFontEditor(), 500);
+      } catch (error) {
+        state.fontEditor.saving = false;
+        if (error.requiresLogin) {
+          redirectToLogin();
+          return;
+        }
+        updateFontEditor(`Nao foi possivel salvar: ${error.message}`);
+      }
+    }
+
+    function configureHomeLink() {
+      if (!DEMO_MODE || !elements.homeLink) return;
+      const variant = DEMO_VARIANT || "long";
+      elements.homeLink.href = `index.html?demo=${encodeURIComponent(variant)}`;
+    }
+
     function openSettings() {
       window.location.href = DEMO_MODE
         ? "admin.html?preview=1#personalizacao"
@@ -748,6 +934,16 @@
       }
     }
 
+    elements.fontSizeButton.addEventListener("click", toggleFontEditor);
+    elements.fontCloseButton.addEventListener("click", () => closeFontEditor(true));
+    elements.fontResetButton.addEventListener("click", () => setFontScales(100, 100));
+    elements.fontDiscardButton.addEventListener("click", () => closeFontEditor(true));
+    elements.fontSaveButton.addEventListener("click", saveFontScales);
+    elements.fontStepButtons.forEach(button => {
+      button.addEventListener("click", () => {
+        changeFontScale(button.dataset.fontTarget, Number(button.dataset.fontStep));
+      });
+    });
     elements.refreshButton.addEventListener("click", loadProblems);
     elements.settingsButton.addEventListener("click", openSettings);
     elements.fullscreenButton.addEventListener("click", toggleFullscreen);
@@ -765,10 +961,20 @@
     });
 
     document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && state.fontEditor.open) {
+        event.preventDefault();
+        closeFontEditor(true);
+        return;
+      }
       if (event.key === "F2") {
         event.preventDefault();
         openSettings();
       }
+    });
+
+    document.addEventListener("pointerdown", event => {
+      if (!state.fontEditor.open || event.target.closest(".font-control")) return;
+      closeFontEditor();
     });
 
     document.addEventListener("visibilitychange", () => {
@@ -791,6 +997,7 @@
 
     window.addEventListener("resize", updateViewportMode);
 
+    configureHomeLink();
     updateViewportMode();
     updateFullscreenButton();
     if (DEMO_MODE) {

@@ -20,6 +20,7 @@ O projeto consulta a API oficial do Zabbix, protege o token no backend e apresen
 - Paginacao automatica de seis incidentes com intervalo configuravel.
 - Transicoes de pagina configuraveis: sem efeito, fade, deslizar ou zoom suave.
 - Escala independente das fontes dos cards e da lista de incidentes.
+- Ajuste rapido de fontes no proprio painel, com previa antes de aplicar.
 - Destaques discretos para incidentes novos e resolvidos recentemente.
 - Configuracao pelo botao no cabecalho ou pela tecla `F2`.
 - Cenarios de demonstracao para validar o layout sem dados reais.
@@ -102,6 +103,7 @@ Os cenarios usam apenas nomes ficticios.
 - `login.html`: primeiro acesso e autenticacao.
 - `admin.php` e `admin.html`: protecao e interface de configuracoes.
 - `app.js`, `login.js` e `admin.js`: comportamento do frontend.
+- `assets/`: identidade visual e favicon do sistema.
 - `dashboard.css`: layout responsivo e visual do painel para TV.
 - `styles.css`: estilos das telas de login e configuracoes.
 - `api/`: autenticacao, configuracoes e integracao com Zabbix.

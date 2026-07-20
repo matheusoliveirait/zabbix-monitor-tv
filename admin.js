@@ -26,6 +26,7 @@ const incidentFontScaleValue = document.getElementById("incidentFontScaleValue")
 const cardFontScale = document.getElementById("cardFontScale");
 const cardFontScaleValue = document.getElementById("cardFontScaleValue");
 const backToPanelLink = document.getElementById("backToPanelLink");
+const homeLinks = Array.from(document.querySelectorAll("[data-home-link]"));
 const DEFAULT_API_PATH = "/zabbix/api_jsonrpc.php";
 const TOKEN_MASK = "TOKEN_ARMAZENADO";
 const PREVIEW_STORAGE_KEY = "central-incidentes-preview-settings-v1";
@@ -495,6 +496,9 @@ setAdminTab(initialTab, false);
 if (previewMode) {
   sessionText.textContent = "Modo demonstracao - preferencias locais";
   backToPanelLink.href = "index.html?demo=long";
+  homeLinks.forEach(link => {
+    link.href = "index.html?demo=long";
+  });
   populateSettings(loadPreviewSettings());
 } else {
   loadAdmin();

@@ -4,22 +4,21 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Central de Incidentes - Configuracoes</title>
+  <link rel="icon" href="assets/favicon.svg?v=1" type="image/svg+xml" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body class="admin-page">
   <div class="admin-layout">
     <aside class="admin-sidebar">
-      <div class="admin-brand">
-        <div class="admin-brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 24 24">
-            <path d="M3 12h4l2-6 4 12 2-6h6" />
-          </svg>
-        </div>
+      <a class="admin-brand" href="index.html" data-home-link aria-label="Ir para o painel">
+        <span class="admin-brand-mark" aria-hidden="true">
+          <img src="assets/logo-mark.svg" alt="" />
+        </span>
         <div>
           <strong>Central de Incidentes</strong>
           <span>Administracao</span>
         </div>
-      </div>
+      </a>
 
       <nav class="admin-nav" aria-label="Secoes de configuracao" role="tablist">
         <button class="admin-nav-item is-active" type="button" data-admin-tab="zabbix" role="tab" aria-controls="zabbixSettings" aria-selected="true">

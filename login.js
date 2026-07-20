@@ -10,6 +10,7 @@ const messagePanel = document.getElementById("messagePanel");
 const messageText = document.getElementById("messageText");
 const nextUrl = new URLSearchParams(window.location.search).get("next");
 const previewMode = new URLSearchParams(window.location.search).get("preview");
+const homeLinks = Array.from(document.querySelectorAll("[data-home-link]"));
 
 function showPanel(name) {
   Object.entries(panels).forEach(([key, panel]) => {
@@ -119,6 +120,9 @@ forms.login.addEventListener("submit", event => {
 });
 
 if (previewMode === "setup" || previewMode === "login") {
+  homeLinks.forEach(link => {
+    link.href = "index.html?demo=long";
+  });
   showPanel(previewMode);
 } else {
   loadLogin();

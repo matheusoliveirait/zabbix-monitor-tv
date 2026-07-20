@@ -61,6 +61,38 @@ try {
         ]);
     }
 
+    if ($method === 'PATCH') {
+        $input = json_input();
+        $current = settings_row();
+        $incidentFontScale = clamp_int(
+            $input['incident_font_scale'] ?? $current['incident_font_scale'],
+            85,
+            125,
+            (int)$current['incident_font_scale']
+        );
+        $cardFontScale = clamp_int(
+            $input['card_font_scale'] ?? $current['card_font_scale'],
+            85,
+            125,
+            (int)$current['card_font_scale']
+        );
+
+        $stmt = db()->prepare(
+            'UPDATE settings
+             SET incident_font_scale = ?, card_font_scale = ?
+             WHERE id = 1'
+        );
+        $stmt->execute([$incidentFontScale, $cardFontScale]);
+
+        json_response([
+            'ok' => true,
+            'settings' => [
+                'incident_font_scale' => $incidentFontScale,
+                'card_font_scale' => $cardFontScale,
+            ],
+        ]);
+    }
+
     if ($method === 'POST' || $method === 'PUT') {
         $input = json_input();
         $current = settings_row();
