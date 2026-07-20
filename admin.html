@@ -7,8 +7,8 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body class="admin-page">
-  <main class="admin-shell">
-    <header class="admin-header">
+  <div class="admin-layout">
+    <aside class="admin-sidebar">
       <div class="admin-brand">
         <div class="admin-brand-mark" aria-hidden="true">
           <svg viewBox="0 0 24 24">
@@ -16,84 +16,235 @@
           </svg>
         </div>
         <div>
-          <div class="admin-product">Central de Incidentes</div>
-          <h1>Configuracoes</h1>
+          <strong>Central de Incidentes</strong>
+          <span>Administracao</span>
         </div>
       </div>
-      <a class="admin-link" href="index.html">Voltar ao painel</a>
-    </header>
 
-    <section class="admin-message" id="messagePanel" role="status" aria-live="polite" hidden>
-      <div id="messageText"></div>
-    </section>
+      <nav class="admin-nav" aria-label="Secoes de configuracao" role="tablist">
+        <button class="admin-nav-item is-active" type="button" data-admin-tab="zabbix" role="tab" aria-controls="zabbixSettings" aria-selected="true">
+          <span class="admin-nav-index">01</span>
+          <span><strong>Zabbix</strong><small>Conexao e escopo</small></span>
+        </button>
+        <button class="admin-nav-item" type="button" data-admin-tab="customization" role="tab" aria-controls="customizationSettings" aria-selected="false">
+          <span class="admin-nav-index">02</span>
+          <span><strong>Personalizacao</strong><small>Comportamento do painel</small></span>
+        </button>
+      </nav>
 
-    <section class="admin-panel">
-      <div class="admin-panel-head">
+      <div class="admin-sidebar-footer">
+        <span id="sessionText">Carregando sessao...</span>
+        <button class="admin-logout" id="logoutButton" type="button">Encerrar sessao</button>
+      </div>
+    </aside>
+
+    <main class="admin-main">
+      <header class="admin-header">
         <div>
-          <h2>Zabbix e exibicao</h2>
-          <p class="admin-muted" id="sessionText">Carregando sessao...</p>
+          <span class="admin-eyebrow">Sistema</span>
+          <h1>Configuracoes</h1>
+          <p>Ajuste a integracao e o comportamento da Central de Incidentes.</p>
         </div>
-        <button class="action" id="logoutButton" type="button">Sair</button>
-      </div>
+        <a class="admin-link" id="backToPanelLink" href="index.html">Voltar ao painel</a>
+      </header>
 
-      <form id="settingsFormAdmin" class="admin-grid-form">
-        <label class="full">
-          URL da API do Zabbix
-          <div class="admin-input-action">
-            <input name="zabbix_api_url" type="text" placeholder="http://DIGITE-O-IP-DO-ZABBIX/zabbix/api_jsonrpc.php" required />
-            <button class="action" id="zabbixUrlButton" type="button">Digitar URL</button>
+      <section class="admin-message" id="messagePanel" role="status" aria-live="polite" hidden>
+        <div id="messageText"></div>
+      </section>
+
+      <form id="settingsFormAdmin" class="admin-form">
+        <section class="admin-view" id="zabbixSettings" data-admin-view="zabbix" role="tabpanel">
+          <header class="admin-view-header">
+            <span>01</span>
+            <div>
+              <h2>Conexao com o Zabbix</h2>
+              <p>Credenciais, endpoint da API e origem dos incidentes monitorados.</p>
+            </div>
+          </header>
+
+          <div class="admin-setting-group">
+            <div class="admin-setting-intro">
+              <h3>API do Zabbix</h3>
+              <p>O token permanece criptografado no servidor e nunca e devolvido ao navegador.</p>
+            </div>
+            <div class="admin-setting-fields">
+              <div class="admin-field admin-field-full">
+                <div class="admin-field-heading">
+                  <label id="urlFieldLabel" for="zabbixHostInput">URL da API para conexao ao Zabbix</label>
+                  <div class="admin-segmented" aria-label="Modo de preenchimento da URL">
+                    <button class="is-active" type="button" data-url-mode="quick" aria-pressed="true">Montagem rapida</button>
+                    <button type="button" data-url-mode="full" aria-pressed="false">URL completa</button>
+                  </div>
+                </div>
+
+                <input name="zabbix_api_url" id="zabbixApiUrl" type="hidden" />
+                <div class="admin-url-builder" id="urlQuickFields">
+                  <select id="zabbixProtocol" aria-label="Protocolo do Zabbix">
+                    <option value="http">http://</option>
+                    <option value="https">https://</option>
+                  </select>
+                  <input id="zabbixHostInput" type="text" inputmode="url" placeholder="IP ou host do Zabbix" autocomplete="url" />
+                  <span>/zabbix/api_jsonrpc.php</span>
+                </div>
+                <input class="admin-full-url" id="zabbixFullUrl" type="url" placeholder="https://zabbix.exemplo.local/zabbix/api_jsonrpc.php" hidden />
+                <span class="admin-hint" id="urlPreview">Informe o IP ou DNS do servidor Zabbix.</span>
+              </div>
+
+              <div class="admin-field admin-field-full">
+                <label for="zabbixToken">Token da API</label>
+                <div class="admin-input-action">
+                  <input name="zabbix_token" id="zabbixToken" type="password" autocomplete="new-password" placeholder="Cole o token da API" />
+                  <button class="action" id="tokenActionButton" type="button" hidden>Substituir token</button>
+                </div>
+                <span class="admin-token-state" id="tokenHint" data-state="empty">
+                  <span aria-hidden="true"></span><span id="tokenHintText">Nenhum token salvo.</span>
+                </span>
+              </div>
+            </div>
           </div>
-          <span class="admin-hint">Modelo: http://DIGITE-O-IP-DO-ZABBIX/zabbix/api_jsonrpc.php</span>
-        </label>
-        <label class="full">
-          Token da API
-          <input name="zabbix_token" type="password" autocomplete="off" placeholder="Deixe vazio para manter o token atual" />
-          <span id="tokenHint" class="admin-hint">Nenhum token salvo.</span>
-        </label>
-        <label>
-          Atualizacao
-          <input name="refresh_seconds" type="number" min="5" max="900" step="5" required />
-        </label>
-        <label>
-          Limite API
-          <input name="api_limit" type="number" min="20" max="5000" step="10" required />
-        </label>
-        <label>
-          Troca de pagina
-          <input name="page_interval_seconds" type="number" min="5" max="120" step="5" required />
-        </label>
-        <label>
-          Ordenacao
-          <select name="sort_mode" required>
-            <option value="recent">Mais recentes</option>
-            <option value="severity">Criticidade primeiro</option>
-            <option value="duration">Duracao primeiro</option>
-            <option value="client">Cliente / host</option>
-            <option value="problem">Problema</option>
-          </select>
-        </label>
-        <label>
-          Escopo
-          <select name="fetch_mode" required>
-            <option value="incidents">Incidentes ativos</option>
-            <option value="problems">Todos os problemas ativos</option>
-          </select>
-        </label>
-        <label>
-          IDs de grupos
-          <input name="monitored_group_ids" type="text" placeholder="12, 15, 18" />
-        </label>
-        <label>
-          IDs de hosts
-          <input name="monitored_host_ids" type="text" placeholder="10084, 10120" />
-        </label>
-        <div class="admin-actions full">
-          <button class="action primary" type="submit">Salvar configuracoes</button>
-          <a class="action" href="index.html">Abrir painel</a>
-        </div>
+
+          <div class="admin-setting-group">
+            <div class="admin-setting-intro">
+              <h3>Escopo de monitoramento</h3>
+              <p>Defina quais problemas o painel deve consultar e o limite por requisicao.</p>
+            </div>
+            <div class="admin-setting-fields admin-grid-2">
+              <div class="admin-field">
+                <label for="fetchMode">Escopo</label>
+                <select name="fetch_mode" id="fetchMode" required>
+                  <option value="incidents">Incidentes ativos</option>
+                  <option value="problems">Todos os problemas ativos</option>
+                </select>
+              </div>
+              <div class="admin-field">
+                <label for="apiLimit">Limite da API</label>
+                <input name="api_limit" id="apiLimit" type="number" min="20" max="5000" step="10" required />
+              </div>
+              <div class="admin-field">
+                <label for="monitoredGroups">IDs de grupos</label>
+                <input name="monitored_group_ids" id="monitoredGroups" type="text" placeholder="12, 15, 18" />
+                <span class="admin-hint">Vazio inclui todos os grupos permitidos ao token.</span>
+              </div>
+              <div class="admin-field">
+                <label for="monitoredHosts">IDs de hosts</label>
+                <input name="monitored_host_ids" id="monitoredHosts" type="text" placeholder="10084, 10120" />
+                <span class="admin-hint">Vazio inclui todos os hosts permitidos ao token.</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-view" id="customizationSettings" data-admin-view="customization" role="tabpanel" hidden>
+          <header class="admin-view-header">
+            <span>02</span>
+            <div>
+              <h2>Personalizacao do painel</h2>
+              <p>Controle a atualizacao, a paginacao e a ordem dos incidentes na TV.</p>
+            </div>
+          </header>
+
+          <div class="admin-setting-group">
+            <div class="admin-setting-intro">
+              <h3>Atualizacao e paginacao</h3>
+              <p>Tempos curtos deixam o painel mais dinamico, mas aumentam o numero de consultas.</p>
+            </div>
+            <div class="admin-setting-fields admin-grid-2">
+              <div class="admin-field">
+                <label for="refreshSeconds">Atualizacao da API</label>
+                <div class="admin-number-field">
+                  <input name="refresh_seconds" id="refreshSeconds" type="number" min="5" max="900" step="5" required />
+                  <span>segundos</span>
+                </div>
+              </div>
+              <div class="admin-field">
+                <label for="pageInterval">Troca automatica de pagina</label>
+                <div class="admin-number-field">
+                  <input name="page_interval_seconds" id="pageInterval" type="number" min="5" max="120" step="5" required />
+                  <span>segundos</span>
+                </div>
+              </div>
+              <div class="admin-field admin-field-full">
+                <label for="sortMode">Ordenacao padrao</label>
+                <select name="sort_mode" id="sortMode" required>
+                  <option value="recent">Mais recentes</option>
+                  <option value="severity">Criticidade primeiro</option>
+                  <option value="duration">Duracao primeiro</option>
+                  <option value="client">Cliente / host</option>
+                  <option value="problem">Problema</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="admin-setting-group">
+            <div class="admin-setting-intro">
+              <h3>Transicao entre paginas</h3>
+              <p>Escolha como a lista troca de pagina durante a rotacao automatica.</p>
+            </div>
+            <fieldset class="admin-setting-fields admin-choice-field">
+              <legend>Efeito da paginacao</legend>
+              <div class="admin-choice-grid">
+                <label class="admin-choice">
+                  <input name="page_transition" type="radio" value="none" />
+                  <span class="admin-choice-preview preview-none" aria-hidden="true"><i></i><i></i></span>
+                  <span><strong>Sem efeito</strong><small>Troca imediata</small></span>
+                </label>
+                <label class="admin-choice">
+                  <input name="page_transition" type="radio" value="fade" />
+                  <span class="admin-choice-preview preview-fade" aria-hidden="true"><i></i><i></i></span>
+                  <span><strong>Fade</strong><small>Suave e discreto</small></span>
+                </label>
+                <label class="admin-choice">
+                  <input name="page_transition" type="radio" value="slide" />
+                  <span class="admin-choice-preview preview-slide" aria-hidden="true"><i></i><i></i></span>
+                  <span><strong>Deslizar</strong><small>Movimento lateral</small></span>
+                </label>
+                <label class="admin-choice">
+                  <input name="page_transition" type="radio" value="zoom" />
+                  <span class="admin-choice-preview preview-zoom" aria-hidden="true"><i></i><i></i></span>
+                  <span><strong>Zoom suave</strong><small>Entrada em foco</small></span>
+                </label>
+              </div>
+            </fieldset>
+          </div>
+
+          <div class="admin-setting-group">
+            <div class="admin-setting-intro">
+              <h3>Escala dos textos</h3>
+              <p>Ajuste a leitura a distancia sem alterar a quantidade de informacao do painel.</p>
+            </div>
+            <div class="admin-setting-fields">
+              <div class="admin-field admin-slider-field">
+                <div class="admin-slider-heading">
+                  <label for="incidentFontScale">Fonte dos incidentes</label>
+                  <output id="incidentFontScaleValue" for="incidentFontScale">100%</output>
+                </div>
+                <input name="incident_font_scale" id="incidentFontScale" type="range" min="85" max="125" step="5" value="100" />
+                <div class="admin-slider-scale"><span>Compacta</span><span>Padrao</span><span>Ampliada</span></div>
+              </div>
+              <div class="admin-field admin-slider-field">
+                <div class="admin-slider-heading">
+                  <label for="cardFontScale">Fonte dos cards</label>
+                  <output id="cardFontScaleValue" for="cardFontScale">100%</output>
+                </div>
+                <input name="card_font_scale" id="cardFontScale" type="range" min="85" max="125" step="5" value="100" />
+                <div class="admin-slider-scale"><span>Compacta</span><span>Padrao</span><span>Ampliada</span></div>
+              </div>
+              <button class="action admin-reset-button" id="resetCustomizationButton" type="button">Redefinir personalizacao</button>
+            </div>
+          </div>
+        </section>
+
+        <footer class="admin-actions">
+          <span id="saveHint" data-state="clean">Nenhuma alteracao pendente.</span>
+          <div>
+            <button class="action" id="discardChangesButton" type="button" disabled>Descartar alteracoes</button>
+            <button class="action primary" id="saveSettingsButton" type="submit" disabled>Salvar configuracoes</button>
+          </div>
+        </footer>
       </form>
-    </section>
-  </main>
+    </main>
+  </div>
 
   <script src="admin.js"></script>
 </body>

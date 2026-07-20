@@ -18,6 +18,9 @@ O projeto consulta a API oficial do Zabbix, protege o token no backend e apresen
 - Ultimos dados validos preservados quando a API fica indisponivel.
 - Ordenacao por hora, criticidade, cliente/host, problema e duracao.
 - Paginacao automatica de seis incidentes com intervalo configuravel.
+- Transicoes de pagina configuraveis: sem efeito, fade, deslizar ou zoom suave.
+- Escala independente das fontes dos cards e da lista de incidentes.
+- Destaques discretos para incidentes novos e resolvidos recentemente.
 - Configuracao pelo botao no cabecalho ou pela tecla `F2`.
 - Cenarios de demonstracao para validar o layout sem dados reais.
 

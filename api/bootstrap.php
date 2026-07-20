@@ -239,8 +239,40 @@ function decrypt_secret(?string $encoded): string
     return $plain === false ? '' : $plain;
 }
 
+function ensure_settings_schema(): void
+{
+    static $ready = false;
+
+    if ($ready) {
+        return;
+    }
+
+    $columns = db()->query('SHOW COLUMNS FROM settings')->fetchAll(PDO::FETCH_COLUMN);
+    $missingColumns = [
+        'page_transition' => "VARCHAR(32) NOT NULL DEFAULT 'fade'",
+        'incident_font_scale' => 'TINYINT UNSIGNED NOT NULL DEFAULT 100',
+        'card_font_scale' => 'TINYINT UNSIGNED NOT NULL DEFAULT 100',
+    ];
+
+    foreach ($missingColumns as $name => $definition) {
+        if (!in_array($name, $columns, true)) {
+            try {
+                db()->exec("ALTER TABLE settings ADD COLUMN {$name} {$definition}");
+            } catch (PDOException $error) {
+                // Another request may have completed the same lightweight migration.
+                if ((int)($error->errorInfo[1] ?? 0) !== 1060) {
+                    throw $error;
+                }
+            }
+        }
+    }
+
+    $ready = true;
+}
+
 function settings_row(): array
 {
+    ensure_settings_schema();
     $stmt = db()->query('SELECT * FROM settings WHERE id = 1');
     $row = $stmt->fetch();
 
@@ -259,6 +291,9 @@ function frontend_config_from_settings(array $settings): array
         'REFRESH_SECONDS' => (int)$settings['refresh_seconds'],
         'PAGE_INTERVAL_SECONDS' => (int)$settings['page_interval_seconds'],
         'SORT_MODE' => $settings['sort_mode'],
+        'PAGE_TRANSITION' => $settings['page_transition'] ?? 'fade',
+        'INCIDENT_FONT_SCALE' => (int)($settings['incident_font_scale'] ?? 100),
+        'CARD_FONT_SCALE' => (int)($settings['card_font_scale'] ?? 100),
     ];
 }
 

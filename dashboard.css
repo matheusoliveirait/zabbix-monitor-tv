@@ -20,6 +20,14 @@
       --warning: #eab308;
       --severity-dark-text: #111827;
       --shadow: 0 22px 58px rgba(0, 0, 0, 0.42);
+      --incident-primary-size: clamp(18px, 1.35vw, 24px);
+      --incident-secondary-size: clamp(12px, 0.95vw, 17px);
+      --incident-meta-size: clamp(16px, 1.15vw, 20px);
+      --incident-duration-size: clamp(19px, 1.5vw, 26px);
+      --card-label-size: clamp(13px, 1vw, 17px);
+      --card-number-size: clamp(44px, 4.6vw, 76px);
+      --card-note-size: clamp(12px, 1vw, 17px);
+      --card-height-adjustment: 0px;
     }
 
     html,
@@ -50,13 +58,13 @@
       width: 100vw;
       height: 100vh;
       display: grid;
-      grid-template-rows: clamp(78px, 11vh, 104px) clamp(126px, 17vh, 160px) minmax(0, 1fr) 30px;
+      grid-template-rows: clamp(78px, 11vh, 104px) clamp(calc(126px + var(--card-height-adjustment)), calc(17vh + var(--card-height-adjustment)), calc(160px + var(--card-height-adjustment))) minmax(0, 1fr) 30px;
       gap: 10px;
       padding: 10px;
     }
 
     .tv.tv-1080p {
-      grid-template-rows: 88px 136px minmax(0, 1fr) 26px;
+      grid-template-rows: 88px calc(136px + var(--card-height-adjustment)) minmax(0, 1fr) 26px;
       gap: 8px;
       padding: 8px;
     }
@@ -744,7 +752,7 @@
 
     @media (max-width: 1180px) {
       .tv {
-        grid-template-rows: 92px 150px minmax(0, 1fr) 30px;
+        grid-template-rows: 92px calc(150px + var(--card-height-adjustment)) minmax(0, 1fr) 30px;
         padding: 12px;
         gap: 10px;
       }
@@ -952,19 +960,20 @@ h1 {
 
 .card-label {
   color: #8fa2b4;
-  font-size: clamp(13px, 1vw, 17px);
+  font-size: var(--card-label-size);
   font-weight: 600;
   letter-spacing: 0;
 }
 
 .card-number {
   margin-top: 2px;
-  font-size: clamp(44px, 4.6vw, 76px);
+  font-size: var(--card-number-size);
   font-weight: 700;
 }
 
 .card-note {
   color: #93a6b8;
+  font-size: var(--card-note-size);
   font-weight: 450;
 }
 
@@ -1047,7 +1056,15 @@ h1 {
 
 .problem-row.resolved,
 .problem-row.resolved:nth-child(even) {
+  opacity: 0.82;
   background: #0e211b;
+  box-shadow: inset 4px 0 #28a862;
+}
+
+.problem-row.new-incident,
+.problem-row.new-incident:nth-child(even) {
+  background: #0c1d27;
+  box-shadow: inset 4px 0 #38bdf8;
 }
 
 .severity-badge,
@@ -1056,7 +1073,7 @@ h1 {
   height: 38px;
   border: 0;
   border-radius: 4px;
-  font-size: clamp(15px, 1.15vw, 20px);
+  font-size: var(--incident-meta-size);
   font-weight: 700;
   letter-spacing: 0;
 }
@@ -1064,7 +1081,7 @@ h1 {
 .event-time,
 .problem-list.compact .event-time {
   color: #6fd7f7;
-  font-size: clamp(16px, 1.15vw, 20px);
+  font-size: var(--incident-meta-size);
   font-weight: 600;
 }
 
@@ -1072,20 +1089,84 @@ h1 {
 .problem-name,
 .problem-list.compact .primary,
 .problem-list.compact .problem-name {
-  font-size: clamp(18px, 1.35vw, 24px);
+  font-size: var(--incident-primary-size);
   font-weight: 600;
 }
 
 .secondary,
 .problem-list.compact .secondary {
   color: #8799a8;
+  font-size: var(--incident-secondary-size);
   font-weight: 400;
 }
 
 .duration,
 .problem-list.compact .duration {
-  font-size: clamp(19px, 1.5vw, 26px);
+  font-size: var(--incident-duration-size);
   font-weight: 650;
+}
+
+.problem-title-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  min-width: 0;
+}
+
+.problem-title-line .problem-name {
+  flex: 0 1 auto;
+}
+
+.incident-state {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  min-height: 22px;
+  margin-top: 1px;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: clamp(10px, 0.72vw, 12px);
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.new-state {
+  border-color: #257a99;
+  color: #bdeeff;
+  background: #123342;
+}
+
+.new-state::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #4cc9f0;
+  animation: new-incident-pulse 1.8s ease-in-out infinite;
+}
+
+.resolved-state {
+  border-color: #277a4c;
+  color: #b9edce;
+  background: #12311f;
+}
+
+.problem-row.resolved .severity-badge {
+  filter: saturate(0.65);
+  opacity: 0.76;
+}
+
+@keyframes new-incident-pulse {
+  50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .new-state::before {
+    animation: none;
+  }
 }
 
 .problem-list::-webkit-scrollbar-track {

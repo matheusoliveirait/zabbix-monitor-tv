@@ -3,12 +3,16 @@
       PAGE_SIZE: 6,
       PAGE_INTERVAL_SECONDS: 15,
       SORT_MODE: "recent",
+      PAGE_TRANSITION: "fade",
+      INCIDENT_FONT_SCALE: 100,
+      CARD_FONT_SCALE: 100,
       BACKEND_PROBLEMS_URL: "api/problems.php",
       ADMIN_URL: "admin.html"
     };
 
     const DEMO_VARIANT = new URLSearchParams(window.location.search).get("demo");
     const DEMO_MODE = DEMO_VARIANT !== null;
+    const PREVIEW_STORAGE_KEY = "central-incidentes-preview-settings-v1";
 
     const state = {
       config: { ...DEFAULT_CONFIG },
@@ -19,7 +23,8 @@
       refreshTimer: null,
       pageTimer: null,
       currentPage: 0,
-      sortModeOverride: null
+      sortModeOverride: null,
+      pageTransitioning: false
     };
 
     const severityMap = {
@@ -88,6 +93,7 @@
         ...serverConfig,
         SORT_MODE: state.sortModeOverride || serverConfig.SORT_MODE || state.config.SORT_MODE
       };
+      applyPanelCustomization();
 
       // Timers start with defaults, then follow the values delivered by the backend.
       if (Number(state.config.REFRESH_SECONDS) !== previousRefresh) {
@@ -96,6 +102,50 @@
       if (Number(state.config.PAGE_INTERVAL_SECONDS) !== previousPageInterval) {
         schedulePageRotation();
       }
+    }
+
+    function applyPanelCustomization() {
+      const incidentScale = clampNumber(state.config.INCIDENT_FONT_SCALE, 85, 125, 100) / 100;
+      const cardScale = clampNumber(state.config.CARD_FONT_SCALE, 85, 125, 100) / 100;
+      const rootStyle = document.documentElement.style;
+
+      rootStyle.setProperty("--incident-primary-size", `clamp(${18 * incidentScale}px, ${1.35 * incidentScale}vw, ${24 * incidentScale}px)`);
+      rootStyle.setProperty("--incident-secondary-size", `clamp(${12 * incidentScale}px, ${0.95 * incidentScale}vw, ${17 * incidentScale}px)`);
+      rootStyle.setProperty("--incident-meta-size", `clamp(${16 * incidentScale}px, ${1.15 * incidentScale}vw, ${20 * incidentScale}px)`);
+      rootStyle.setProperty("--incident-duration-size", `clamp(${19 * incidentScale}px, ${1.5 * incidentScale}vw, ${26 * incidentScale}px)`);
+      rootStyle.setProperty("--card-label-size", `clamp(${13 * cardScale}px, ${1 * cardScale}vw, ${17 * cardScale}px)`);
+      rootStyle.setProperty("--card-number-size", `clamp(${44 * cardScale}px, ${4.6 * cardScale}vw, ${76 * cardScale}px)`);
+      rootStyle.setProperty("--card-note-size", `clamp(${12 * cardScale}px, ${1 * cardScale}vw, ${17 * cardScale}px)`);
+      rootStyle.setProperty("--card-height-adjustment", `${(cardScale - 1) * 120}px`);
+    }
+
+    function applyDemoSettings(renderChanges = false) {
+      if (!DEMO_MODE) return;
+
+      try {
+        const saved = JSON.parse(localStorage.getItem(PREVIEW_STORAGE_KEY) || "{}");
+        state.config = {
+          ...state.config,
+          REFRESH_SECONDS: saved.refresh_seconds ?? state.config.REFRESH_SECONDS,
+          PAGE_INTERVAL_SECONDS: saved.page_interval_seconds ?? state.config.PAGE_INTERVAL_SECONDS,
+          SORT_MODE: saved.sort_mode || state.config.SORT_MODE,
+          PAGE_TRANSITION: saved.page_transition || state.config.PAGE_TRANSITION,
+          INCIDENT_FONT_SCALE: saved.incident_font_scale ?? state.config.INCIDENT_FONT_SCALE,
+          CARD_FONT_SCALE: saved.card_font_scale ?? state.config.CARD_FONT_SCALE,
+        };
+      } catch {
+        state.config = { ...state.config };
+      }
+
+      applyPanelCustomization();
+      if (!renderChanges) return;
+
+      state.sortModeOverride = null;
+      state.problems.sort(sortProblems);
+      state.currentPage = 0;
+      scheduleAutoRefresh();
+      schedulePageRotation();
+      render();
     }
 
     async function loadProblemsFromBackend() {
@@ -231,9 +281,11 @@
     }
 
     function renderSummary(problems) {
-      const counts = countBySeverity(problems);
-      const total = problems.length;
-      const oldest = [...problems].sort((a, b) => a.clock - b.clock)[0];
+      const activeProblems = problems.filter(problem => problem.status !== "RESOLVIDO");
+      const resolvedCount = problems.length - activeProblems.length;
+      const counts = countBySeverity(activeProblems);
+      const total = activeProblems.length;
+      const oldest = [...activeProblems].sort((a, b) => a.clock - b.clock)[0];
 
       elements.totalProblems.textContent = total;
       elements.countDisaster.textContent = counts[5];
@@ -254,13 +306,16 @@
         ? "Sync falhou"
         : total > 0 ? "Em alerta" : "Operacional";
       const sortLabel = sortModeLabel[state.config.SORT_MODE] || sortModeLabel.severity;
-      const pagination = getPaginationState(total);
-      elements.pageTitle.textContent = total > 0
+      const pagination = getPaginationState(problems.length);
+      elements.pageTitle.textContent = problems.length > 0
         ? `- Pagina ${pagination.currentPage + 1}/${pagination.totalPages}`
         : "";
+      const listSummary = resolvedCount > 0
+        ? `${total} ativo(s) - ${resolvedCount} resolvido(s)`
+        : `${total} ativo(s)`;
       elements.panelSubtitle.textContent = state.error && state.lastRefreshAt
-        ? `Ultimos dados bons - ordenacao: ${sortLabel}`
-        : `Ordenacao: ${sortLabel}`;
+        ? `Ultimos dados bons - ${listSummary} - ordenacao: ${sortLabel}`
+        : `${listSummary} - ordenacao: ${sortLabel}`;
     }
 
     function setCardNote(element, count) {
@@ -288,8 +343,20 @@
       elements.problemList.classList.toggle("compact", problems.length >= 5);
       const rowHeight = calculateRowHeight(visibleProblems.length);
       elements.problemList.style.setProperty("--row-height", rowHeight);
-      elements.problemList.innerHTML = visibleProblems.map(problem => `
-        <div class="problem-row${problem.status === "RESOLVIDO" ? " resolved" : ""}">
+      elements.problemList.innerHTML = visibleProblems.map(renderProblemRow).join("");
+      elements.problemList.scrollTop = 0;
+    }
+
+    function renderProblemRow(problem) {
+      const isResolved = problem.status === "RESOLVIDO";
+      const isNew = !isResolved && isNewProblem(problem);
+      const rowState = isResolved ? " resolved" : isNew ? " new-incident" : "";
+      const stateBadge = isResolved
+        ? '<span class="incident-state resolved-state"><span aria-hidden="true">&#10003;</span> Resolvido</span>'
+        : isNew ? '<span class="incident-state new-state">Novo</span>' : "";
+
+      return `
+        <div class="problem-row${rowState}">
           <div class="event-time">${formatEventTime(problem.clock)}</div>
           <div class="severity-badge sev-${problem.severity}">${severityMap[problem.severity] || "N/D"}</div>
           <div class="entity">
@@ -297,13 +364,20 @@
             <div class="secondary" title="${escapeHtml(problem.hostName)}">${escapeHtml(problem.hostName)}</div>
           </div>
           <div class="problem-cell">
-            <div class="problem-name" title="${escapeHtml(problem.name)}">${escapeHtml(problem.name)}</div>
+            <div class="problem-title-line">
+              <div class="problem-name" title="${escapeHtml(problem.name)}">${escapeHtml(problem.name)}</div>
+              ${stateBadge}
+            </div>
             <div class="secondary" title="${escapeHtml(problem.opdata)}">${escapeHtml(problem.opdata || "Sem dados adicionais")}</div>
           </div>
           <div class="duration">${formatDuration(problem.clock, problem.rClock)}</div>
         </div>
-      `).join("");
-      elements.problemList.scrollTop = 0;
+      `;
+    }
+
+    function isNewProblem(problem) {
+      const ageSeconds = Math.floor(Date.now() / 1000) - Number(problem.clock || 0);
+      return ageSeconds >= 0 && ageSeconds < 600;
     }
 
     function updateSortButtons() {
@@ -541,7 +615,9 @@
     }
 
     function openSettings() {
-      window.location.href = state.config.ADMIN_URL || DEFAULT_CONFIG.ADMIN_URL;
+      window.location.href = DEMO_MODE
+        ? "admin.html?preview=1#personalizacao"
+        : state.config.ADMIN_URL || DEFAULT_CONFIG.ADMIN_URL;
     }
 
     function getFullscreenElement() {
@@ -613,11 +689,63 @@
 
       state.pageTimer = setInterval(() => {
         const pagination = getPaginationState(state.problems.length);
-        if (pagination.totalPages <= 1 || document.hidden) return;
+        if (pagination.totalPages <= 1 || document.hidden || state.pageTransitioning) return;
 
-        state.currentPage = (state.currentPage + 1) % pagination.totalPages;
-        render();
+        transitionToPage((state.currentPage + 1) % pagination.totalPages);
       }, intervalSeconds * 1000);
+    }
+
+    async function transitionToPage(nextPage) {
+      const transitions = {
+        fade: {
+          out: [{ opacity: 1 }, { opacity: 0 }],
+          in: [{ opacity: 0 }, { opacity: 1 }]
+        },
+        slide: {
+          out: [{ opacity: 1, transform: "translateX(0)" }, { opacity: 0, transform: "translateX(-3%)" }],
+          in: [{ opacity: 0, transform: "translateX(3%)" }, { opacity: 1, transform: "translateX(0)" }]
+        },
+        zoom: {
+          out: [{ opacity: 1, transform: "scale(1)" }, { opacity: 0, transform: "scale(0.985)" }],
+          in: [{ opacity: 0, transform: "scale(1.015)" }, { opacity: 1, transform: "scale(1)" }]
+        }
+      };
+      const effect = transitions[state.config.PAGE_TRANSITION];
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      if (!effect || reduceMotion || typeof elements.problemList.animate !== "function") {
+        state.currentPage = nextPage;
+        render();
+        return;
+      }
+
+      state.pageTransitioning = true;
+      let outgoingAnimation = null;
+      let incomingAnimation = null;
+      try {
+        outgoingAnimation = elements.problemList.animate(effect.out, {
+          duration: 180,
+          easing: "ease-in",
+          fill: "forwards"
+        });
+        await outgoingAnimation.finished;
+        outgoingAnimation.cancel();
+        state.currentPage = nextPage;
+        render();
+        incomingAnimation = elements.problemList.animate(effect.in, {
+          duration: 260,
+          easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+          fill: "both"
+        });
+        await incomingAnimation.finished;
+      } catch (error) {
+        state.currentPage = nextPage;
+        render();
+      } finally {
+        outgoingAnimation?.cancel();
+        incomingAnimation?.cancel();
+        state.pageTransitioning = false;
+      }
     }
 
     elements.refreshButton.addEventListener("click", loadProblems);
@@ -652,6 +780,12 @@
       }
     });
 
+    window.addEventListener("storage", event => {
+      if (DEMO_MODE && event.key === PREVIEW_STORAGE_KEY) {
+        applyDemoSettings(true);
+      }
+    });
+
     document.addEventListener("fullscreenchange", updateFullscreenButton);
     document.addEventListener("webkitfullscreenchange", updateFullscreenButton);
 
@@ -659,6 +793,11 @@
 
     updateViewportMode();
     updateFullscreenButton();
+    if (DEMO_MODE) {
+      applyDemoSettings();
+    } else {
+      applyPanelCustomization();
+    }
     updateClock();
     renderSetup();
     scheduleAutoRefresh();

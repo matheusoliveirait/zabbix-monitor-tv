@@ -91,7 +91,7 @@
     <main class="incidents">
       <div class="panel-head">
         <div class="panel-title">
-          <h2>Incidentes ativos <span class="page-title" id="pageTitle"></span></h2>
+          <h2>Incidentes recentes <span class="page-title" id="pageTitle"></span></h2>
           <div class="panel-subtitle" id="panelSubtitle">Aguardando atualizacao</div>
         </div>
         <div class="status-pill" id="statusPill">Sem dados</div>
@@ -105,7 +105,7 @@
         <button class="sort-button" type="button" data-sort-mode="duration">Duracao</button>
       </div>
 
-      <div class="problem-list" id="problemList"></div>
+      <div class="problem-list" id="problemList" aria-live="polite"></div>
     </main>
 
     <footer class="footer">
