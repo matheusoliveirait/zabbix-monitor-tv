@@ -1,0 +1,9 @@
+DirectoryIndex index.php
+Options -Indexes
+
+RewriteEngine On
+RewriteRule (^|/)\. - [F,L]
+RewriteRule ^(?:backups|config|database|outputs|work)(?:/|$) - [F,L,NC]
+RewriteRule ^$ index.php [L]
+RewriteRule ^index\.html$ index.php [L]
+RewriteRule ^admin\.html$ admin.php [L]

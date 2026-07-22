@@ -1,0 +1,27 @@
+# Sistema
+Thumbs.db
+Desktop.ini
+
+# Logs e temporarios
+*.log
+*.tmp
+*.temp
+
+# Dependencias futuras
+node_modules/
+.dotnet/
+
+# Configuracoes locais opcionais
+.env
+.env.*
+config/app.php
+
+# Banco local / dumps
+*.sqlite
+*.db
+database/*.sql.gz
+
+# Backups e artefatos locais
+backups/
+outputs/
+work/

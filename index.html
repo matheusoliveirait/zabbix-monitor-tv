@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="graphite">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Central de Incidentes - Monitoramento Zabbix</title>
+  <link rel="icon" href="assets/favicon.svg?v=6" type="image/svg+xml" />
+  <script src="theme.js?v=1"></script>
+  <link rel="stylesheet" href="dashboard.css?v=12" />
+</head>
+<body>
+  <div class="tv">
+    <header class="topbar">
+      <a class="brand" href="index.html" data-home-link aria-label="Ir para o início">
+        <span class="brand-mark" aria-hidden="true">
+          <img src="assets/logo-mark.svg?v=6" data-theme-logo alt="" />
+        </span>
+        <h1>Monitoramento de Infraestrutura</h1>
+      </a>
+
+      <div class="top-right">
+        <div class="clock">
+          <div class="clock-time" id="clockTime">--:--:--</div>
+          <div class="clock-date" id="clockDate">--/--/----</div>
+        </div>
+        <div class="utility-actions">
+          <div class="font-control">
+            <button class="icon-button" id="fontSizeButton" type="button" title="Ajustar tamanho das fontes" aria-label="Ajustar tamanho das fontes" aria-expanded="false" aria-controls="fontSizePanel" disabled>
+              <svg class="icon" viewBox="0 0 24 24">
+                <path d="m4 19 6-14 6 14" />
+                <path d="M6.5 13h7" />
+                <path d="M19 12v7" />
+                <path d="M16 15.5h6" />
+              </svg>
+            </button>
+
+            <section class="font-popover" id="fontSizePanel" role="dialog" aria-label="Ajuste rápido de fontes" hidden>
+              <header class="font-popover-head">
+                <div>
+                  <strong>Tamanho dos textos</strong>
+                  <span id="fontPreviewState">Valores atuais</span>
+                </div>
+                <button class="font-close" id="fontCloseButton" type="button" title="Fechar" aria-label="Fechar ajuste de fontes">
+                  <svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" /></svg>
+                </button>
+              </header>
+
+              <div class="font-setting">
+                <span>Incidentes</span>
+                <div class="font-stepper">
+                  <button type="button" data-font-target="incident" data-font-step="-5" aria-label="Diminuir fonte dos incidentes">-</button>
+                  <output id="incidentFontQuickValue">100%</output>
+                  <button type="button" data-font-target="incident" data-font-step="5" aria-label="Aumentar fonte dos incidentes">+</button>
+                </div>
+              </div>
+
+              <div class="font-setting">
+                <span>Cards</span>
+                <div class="font-stepper">
+                  <button type="button" data-font-target="card" data-font-step="-5" aria-label="Diminuir fonte dos cards">-</button>
+                  <output id="cardFontQuickValue">100%</output>
+                  <button type="button" data-font-target="card" data-font-step="5" aria-label="Aumentar fonte dos cards">+</button>
+                </div>
+              </div>
+
+              <footer class="font-popover-actions">
+                <button class="font-action" id="fontResetButton" type="button">Padrão</button>
+                <button class="font-action" id="fontDiscardButton" type="button" disabled>Descartar</button>
+                <button class="font-action primary" id="fontSaveButton" type="button" disabled>Aplicar</button>
+              </footer>
+            </section>
+          </div>
+          <button class="icon-button" id="settingsButton" type="button" title="Configurações (atalho F2)" aria-label="Abrir configurações">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
+              <path d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.06.06a2.1 2.1 0 1 1-2.97 2.97l-.06-.06a1.8 1.8 0 0 0-1.98-.36 1.8 1.8 0 0 0-1.1 1.65V21a2.1 2.1 0 1 1-4.2 0v-.09a1.8 1.8 0 0 0-1.18-1.65 1.8 1.8 0 0 0-1.98.36l-.06.06a2.1 2.1 0 1 1-2.97-2.97l.06-.06A1.8 1.8 0 0 0 4.6 15a1.8 1.8 0 0 0-1.65-1.1H2.8a2.1 2.1 0 1 1 0-4.2h.09A1.8 1.8 0 0 0 4.54 8.5a1.8 1.8 0 0 0-.36-1.98l-.06-.06a2.1 2.1 0 1 1 2.97-2.97l.06.06a1.8 1.8 0 0 0 1.98.36h.08A1.8 1.8 0 0 0 10.4 2.3V2.1a2.1 2.1 0 1 1 4.2 0v.09a1.8 1.8 0 0 0 1.1 1.65 1.8 1.8 0 0 0 1.98-.36l.06-.06a2.1 2.1 0 1 1 2.97 2.97l-.06.06a1.8 1.8 0 0 0-.36 1.98v.08a1.8 1.8 0 0 0 1.65 1.1h.16a2.1 2.1 0 1 1 0 4.2h-.09A1.8 1.8 0 0 0 19.4 15Z" />
+            </svg>
+          </button>
+          <button class="icon-button" id="fullscreenButton" type="button" title="Entrar em tela cheia" aria-label="Entrar em tela cheia" aria-pressed="false">
+            <svg class="icon fullscreen-enter-icon" viewBox="0 0 24 24">
+              <path d="M8 3H3v5" />
+              <path d="M16 3h5v5" />
+              <path d="M8 21H3v-5" />
+              <path d="M16 21h5v-5" />
+            </svg>
+            <svg class="icon fullscreen-exit-icon" viewBox="0 0 24 24">
+              <path d="M3 8h5V3" />
+              <path d="M21 8h-5V3" />
+              <path d="M3 16h5v5" />
+              <path d="M21 16h-5v5" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <section class="summary" aria-label="Resumo operacional">
+      <button class="card total-card" id="totalCard" type="button" data-severity-filter="all" aria-label="Mostrar todos os incidentes" aria-pressed="true">
+        <div class="card-label">Incidentes ativos</div>
+        <div class="card-number" id="totalProblems">0</div>
+        <div class="card-note" id="totalNote">Aguardando dados</div>
+      </button>
+
+      <button class="card" type="button" data-severity="5" data-severity-filter="5" aria-label="Filtrar por criticidade Desastre" aria-pressed="false">
+        <div class="card-label">Desastre</div>
+        <div class="card-number" id="countDisaster">0</div>
+        <div class="card-note" id="noteDisaster">Sem incidente</div>
+      </button>
+
+      <button class="card" type="button" data-severity="4" data-severity-filter="4" aria-label="Filtrar por criticidade Alta" aria-pressed="false">
+        <div class="card-label">Alta</div>
+        <div class="card-number" id="countHigh">0</div>
+        <div class="card-note" id="noteHigh">Sem incidente</div>
+      </button>
+
+      <button class="card" type="button" data-severity="3" data-severity-filter="3" aria-label="Filtrar por criticidade Média" aria-pressed="false">
+        <div class="card-label">Média</div>
+        <div class="card-number" id="countAverage">0</div>
+        <div class="card-note" id="noteAverage">Sem incidente</div>
+      </button>
+
+      <button class="card" type="button" data-severity="2" data-severity-filter="2" aria-label="Filtrar por criticidade Atenção" aria-pressed="false">
+        <div class="card-label">Atenção</div>
+        <div class="card-number" id="countWarning">0</div>
+        <div class="card-note" id="noteWarning">Sem incidente</div>
+      </button>
+    </section>
+
+    <main class="incidents">
+      <div class="panel-head">
+        <div class="panel-title">
+          <h2>Incidentes recentes <span class="page-title" id="pageTitle"></span></h2>
+          <div class="panel-subtitle" id="panelSubtitle">Aguardando atualização</div>
+        </div>
+        <div class="status-pill" id="statusPill">Sem dados</div>
+      </div>
+
+      <div class="table-head">
+        <button class="sort-button" type="button" data-sort-mode="recent">Hora</button>
+        <button class="sort-button" type="button" data-sort-mode="severity">Criticidade</button>
+        <button class="sort-button" type="button" data-sort-mode="client">Cliente / Host</button>
+        <button class="sort-button" type="button" data-sort-mode="problem">Problema</button>
+        <button class="sort-button" type="button" data-sort-mode="duration">Duração</button>
+      </div>
+
+      <div class="problem-list" id="problemList" aria-live="polite"></div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-status" id="footerStatus">Aguardando configuração</div>
+      <div>Central de Incidentes</div>
+    </footer>
+  </div>
+
+  <script src="app.js?v=13"></script>
+</body>
+</html>

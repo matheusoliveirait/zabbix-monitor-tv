@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="graphite">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Central de Incidentes - Configurações</title>
+  <link rel="icon" href="assets/favicon.svg?v=6" type="image/svg+xml" />
+  <script src="theme.js?v=1"></script>
+  <link rel="stylesheet" href="styles.css?v=4" />
+</head>
+<body class="admin-page">
+  <div class="admin-layout">
+    <aside class="admin-sidebar">
+      <a class="admin-brand" href="index.html" data-home-link aria-label="Ir para o painel">
+        <span class="admin-brand-mark" aria-hidden="true">
+          <img src="assets/logo-mark.svg?v=6" data-theme-logo alt="" />
+        </span>
+        <div>
+          <strong>Central de Incidentes</strong>
+          <span>Administração</span>
+        </div>
+      </a>
+
+      <nav class="admin-nav" aria-label="Seções de configuração" role="tablist">
+        <button class="admin-nav-item is-active" type="button" data-admin-tab="zabbix" role="tab" aria-controls="zabbixSettings" aria-selected="true">
+          <span class="admin-nav-index">01</span>
+          <span><strong>Zabbix</strong><small>Conexão e escopo</small></span>
+        </button>
+        <button class="admin-nav-item" type="button" data-admin-tab="customization" role="tab" aria-controls="customizationSettings" aria-selected="false">
+          <span class="admin-nav-index">02</span>
+          <span><strong>Personalização</strong><small>Comportamento do painel</small></span>
+        </button>
+      </nav>
+
+      <div class="admin-sidebar-footer">
+        <span id="sessionText">Carregando sessão...</span>
+        <button class="admin-logout" id="logoutButton" type="button">Encerrar sessão</button>
+      </div>
+    </aside>
+
+    <main class="admin-main">
+      <header class="admin-header">
+        <div>
+          <span class="admin-eyebrow">Sistema</span>
+          <h1>Configurações</h1>
+          <p>Ajuste a integração e o comportamento da Central de Incidentes.</p>
+        </div>
+        <a class="admin-link" id="backToPanelLink" href="index.html">Voltar ao painel</a>
+      </header>
+
+      <section class="admin-message" id="messagePanel" role="status" aria-live="polite" hidden>
+        <div id="messageText"></div>
+      </section>
+
+      <form id="settingsFormAdmin" class="admin-form">
+        <section class="admin-view" id="zabbixSettings" data-admin-view="zabbix" role="tabpanel">
+          <header class="admin-view-header">
+            <span>01</span>
+            <div>
+              <h2>Conexão com o Zabbix</h2>
+              <p>Credenciais, endpoint da API e origem dos incidentes monitorados.</p>
+            </div>
+          </header>
+
+          <div class="admin-setting-group">
+            <div class="admin-setting-intro">
+              <h3>API do Zabbix</h3>
+              <p>O token permanece criptografado no servidor e nunca é devolvido ao navegador.</p>
+            </div>
+            <div class="admin-setting-fields">
+              <div class="admin-field admin-field-full">
+                <div class="admin-field-heading">
+                  <label id="urlFieldLabel" for="zabbixHostInput">URL da API para conexão ao Zabbix</label>
+                  <div class="admin-segmented" aria-label="Modo de preenchimento da URL">
+                    <button class="is-active" type="button" data-url-mode="quick" aria-pressed="true">Montagem rápida</button>
+                    <button type="button" data-url-mode="full" aria-pressed="false">URL completa</button>
+                  </div>
+                </div>
+
+                <input name="zabbix_api_url" id="zabbixApiUrl" type="hidden" />
+                <div class="admin-url-builder" id="urlQuickFields">
+                  <select id="zabbixProtocol" aria-label="Protocolo do Zabbix">
+                    <option value="http">http://</option>
+                    <option value="https">https://</option>
+                  </select>
+                  <input id="zabbixHostInput" type="text" inputmode="url" placeholder="IP ou host do Zabbix" autocomplete="url" />
+                  <span>/zabbix/api_jsonrpc.php</span>
+                </div>
+                <input class="admin-full-url" id="zabbixFullUrl" type="url" placeholder="https://zabbix.exemplo.local/zabbix/api_jsonrpc.php" hidden />
+                <span class="admin-hint" id="urlPreview">Informe o IP ou DNS do servidor Zabbix.</span>
+              </div>
+
+              <div class="admin-field admin-field-full">
+                <label for="zabbixToken">Token da API</label>
+                <div class="admin-input-action">
+                  <input name="zabbix_token" id="zabbixToken" type="password" autocomplete="new-password" placeholder="Cole o token da API" />
+                  <button class="action" id="tokenActionButton" type="button" hidden>Substituir token</button>
+                </div>
+                <span class="admin-token-state" id="tokenHint" data-state="empty">
+                  <span aria-hidden="true"></span><span id="tokenHintText">Nenhum token salvo.</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="admin-setting-group">
+            <div class="admin-setting-intro">
+              <h3>Escopo de monitoramento</h3>
+              <p>Defina quais problemas o painel deve consultar e o limite por requisição.</p>
+            </div>
+            <div class="admin-setting-fields admin-grid-2">
+              <div class="admin-field">
+                <label for="fetchMode">Escopo</label>
+                <select name="fetch_mode" id="fetchMode" required>
+                  <option value="incidents">Incidentes ativos</option>
+                  <option value="problems">Todos os problemas ativos</option>
+                </select>
+              </div>
+              <div class="admin-field">
+                <label for="apiLimit">Limite da API</label>
+                <input name="api_limit" id="apiLimit" type="number" min="20" max="5000" step="10" required />
+              </div>
+              <div class="admin-field">
+                <label for="monitoredGroups">IDs de grupos</label>
+                <input name="monitored_group_ids" id="monitoredGroups" type="text" placeholder="12, 15, 18" />
+                <span class="admin-hint">Vazio inclui todos os grupos permitidos ao token.</span>
+              </div>
+              <div class="admin-field">
+                <label for="monitoredHosts">IDs de hosts</label>
+                <input name="monitored_host_ids" id="monitoredHosts" type="text" placeholder="10084, 10120" />
+                <span class="admin-hint">Vazio inclui todos os hosts permitidos ao token.</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-view" id="customizationSettings" data-admin-view="customization" role="tabpanel" hidden>
+          <header class="admin-view-header">
+            <span>02</span>
+            <div>
+              <h2>Personalização do painel</h2>
+              <p>Controle a atualização, a paginação e a ordem dos incidentes na TV.</p>
+            </div>
+          </header>
+
+          <div class="admin-setting-group">
+            <div class="admin-setting-intro">
+              <h3>Aparência</h3>
+              <p>A escolha acompanha o dashboard, as configurações e a tela de acesso.</p>
+            </div>
+            <fieldset class="admin-setting-fields admin-theme-field">
+              <legend>Tema da interface</legend>
+              <div class="admin-theme-grid">
+                <label class="admin-theme-choice">
+                  <input name="dashboard_theme" type="radio" value="graphite" />
+                  <span class="admin-theme-preview theme-preview-graphite" aria-hidden="true">
+                    <i class="theme-preview-header"></i>
+                    <i class="theme-preview-cards"></i>
+                    <i class="theme-preview-row"></i>
+                    <i class="theme-preview-row"></i>
+                  </span>
+                  <span><strong>Chumbo</strong><small>Padrão do projeto, escuro e discreto</small></span>
+                </label>
+                <label class="admin-theme-choice">
+                  <input name="dashboard_theme" type="radio" value="light" />
+                  <span class="admin-theme-preview theme-preview-light" aria-hidden="true">
+                    <i class="theme-preview-header"></i>
+                    <i class="theme-preview-cards"></i>
+                    <i class="theme-preview-row"></i>
+                    <i class="theme-preview-row"></i>
+                  </span>
+                  <span><strong>Claro</strong><small>Branco e cinza com leitura nítida</small></span>
+                </label>
+                <label class="admin-theme-choice">
+                  <input name="dashboard_theme" type="radio" value="blue" />
+                  <span class="admin-theme-preview theme-preview-blue" aria-hidden="true">
+                    <i class="theme-preview-header"></i>
+                    <i class="theme-preview-cards"></i>
+                    <i class="theme-preview-row"></i>
+                    <i class="theme-preview-row"></i>
+                  </span>
+                  <span><strong>Azul</strong><small>Visual profundo da versão anterior</small></span>
+                </label>
+              </div>
+            </fieldset>
+          </div>
+
+          <div class="admin-setting-group">
+            <div class="admin-setting-intro">
+              <h3>Cores das criticidades</h3>
+              <p>Personalize os cards e as badges da tabela. O contraste do texto é ajustado automaticamente.</p>
+            </div>
+            <fieldset class="admin-setting-fields admin-severity-field">
+              <legend>Paleta do painel</legend>
+              <div class="admin-color-grid">
+                <div class="admin-color-control" data-severity-color="5">
+                  <div class="admin-color-heading">
+                    <span class="admin-severity-sample" data-color-sample>Desastre</span>
+                    <small>Criticidade máxima</small>
+                  </div>
+                  <div class="admin-color-inputs">
+                    <input class="admin-color-picker" id="severityColorPicker5" type="color" value="#ef4444" data-color-picker aria-label="Selecionar cor de Desastre" />
+                    <input class="admin-color-hex" name="severity_color_5" id="severityColor5" type="text" value="#EF4444" maxlength="7" pattern="^#[0-9A-Fa-f]{6}$" autocomplete="off" spellcheck="false" data-color-hex aria-label="Cor hexadecimal de Desastre" required />
+                  </div>
+                </div>
+                <div class="admin-color-control" data-severity-color="4">
+                  <div class="admin-color-heading">
+                    <span class="admin-severity-sample" data-color-sample>Alta</span>
+                    <small>Ação imediata</small>
+                  </div>
+                  <div class="admin-color-inputs">
+                    <input class="admin-color-picker" id="severityColorPicker4" type="color" value="#f97316" data-color-picker aria-label="Selecionar cor de Alta" />
+                    <input class="admin-color-hex" name="severity_color_4" id="severityColor4" type="text" value="#F97316" maxlength="7" pattern="^#[0-9A-Fa-f]{6}$" autocomplete="off" spellcheck="false" data-color-hex aria-label="Cor hexadecimal de Alta" required />
+                  </div>
+                </div>
+                <div class="admin-color-control" data-severity-color="3">
+                  <div class="admin-color-heading">
+                    <span class="admin-severity-sample" data-color-sample>Média</span>
+                    <small>Impacto relevante</small>
+                  </div>
+                  <div class="admin-color-inputs">
+                    <input class="admin-color-picker" id="severityColorPicker3" type="color" value="#f59e0b" data-color-picker aria-label="Selecionar cor de Média" />
+                    <input class="admin-color-hex" name="severity_color_3" id="severityColor3" type="text" value="#F59E0B" maxlength="7" pattern="^#[0-9A-Fa-f]{6}$" autocomplete="off" spellcheck="false" data-color-hex aria-label="Cor hexadecimal de Média" required />
+                  </div>
+                </div>
+                <div class="admin-color-control" data-severity-color="2">
+                  <div class="admin-color-heading">
+                    <span class="admin-severity-sample" data-color-sample>Atenção</span>
+                    <small>Requer acompanhamento</small>
+                  </div>
+                  <div class="admin-color-inputs">
+                    <input class="admin-color-picker" id="severityColorPicker2" type="color" value="#eab308" data-color-picker aria-label="Selecionar cor de Atenção" />
+                    <input class="admin-color-hex" name="severity_color_2" id="severityColor2" type="text" value="#EAB308" maxlength="7" pattern="^#[0-9A-Fa-f]{6}$" autocomplete="off" spellcheck="false" data-color-hex aria-label="Cor hexadecimal de Atenção" required />
+                  </div>
+                </div>
+              </div>
+              <button class="action admin-color-reset" id="resetSeverityColorsButton" type="button">Restaurar paleta padrão</button>
+            </fieldset>
+          </div>
+
+          <div class="admin-setting-group">
+            <div class="admin-setting-intro">
+              <h3>Atualização e paginação</h3>
+              <p>Tempos curtos deixam o painel mais dinâmico, mas aumentam o número de consultas.</p>
+            </div>
+            <div class="admin-setting-fields admin-grid-2">
+              <div class="admin-field">
+                <label for="refreshSeconds">Atualização da API</label>
+                <div class="admin-number-field">
+                  <input name="refresh_seconds" id="refreshSeconds" type="number" min="5" max="900" step="5" required />
+                  <span>segundos</span>
+                </div>
+              </div>
+              <div class="admin-field">
+                <label for="pageInterval">Troca automática de página</label>
+                <div class="admin-number-field">
+                  <input name="page_interval_seconds" id="pageInterval" type="number" min="5" max="120" step="5" required />
+                  <span>segundos</span>
+                </div>
+              </div>
+              <div class="admin-field admin-field-full">
+                <label for="sortMode">Ordenação padrão</label>
+                <select name="sort_mode" id="sortMode" required>
+                  <option value="recent">Mais recentes</option>
+                  <option value="severity">Criticidade primeiro</option>
+                  <option value="duration">Duração primeiro</option>
+                  <option value="client">Cliente / host</option>
+                  <option value="problem">Problema</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="admin-setting-group">
+            <div class="admin-setting-intro">
+              <h3>Transição entre páginas</h3>
+              <p>Escolha como a lista troca de página durante a rotação automática.</p>
+            </div>
+            <fieldset class="admin-setting-fields admin-choice-field">
+              <legend>Efeito da paginação</legend>
+              <div class="admin-choice-grid">
+                <label class="admin-choice">
+                  <input name="page_transition" type="radio" value="none" />
+                  <span class="admin-choice-preview preview-none" aria-hidden="true"><i></i><i></i></span>
+                  <span><strong>Sem efeito</strong><small>Troca imediata</small></span>
+                </label>
+                <label class="admin-choice">
+                  <input name="page_transition" type="radio" value="fade" />
+                  <span class="admin-choice-preview preview-fade" aria-hidden="true"><i></i><i></i></span>
+                  <span><strong>Fade</strong><small>Suave e discreto</small></span>
+                </label>
+                <label class="admin-choice">
+                  <input name="page_transition" type="radio" value="slide" />
+                  <span class="admin-choice-preview preview-slide" aria-hidden="true"><i></i><i></i></span>
+                  <span><strong>Deslizar</strong><small>Movimento lateral</small></span>
+                </label>
+                <label class="admin-choice">
+                  <input name="page_transition" type="radio" value="zoom" />
+                  <span class="admin-choice-preview preview-zoom" aria-hidden="true"><i></i><i></i></span>
+                  <span><strong>Zoom suave</strong><small>Entrada em foco</small></span>
+                </label>
+              </div>
+            </fieldset>
+          </div>
+
+          <div class="admin-setting-group">
+            <div class="admin-setting-intro">
+              <h3>Escala dos textos</h3>
+              <p>Ajuste a leitura a distância sem alterar a quantidade de informação do painel.</p>
+            </div>
+            <div class="admin-setting-fields">
+              <div class="admin-field admin-slider-field">
+                <div class="admin-slider-heading">
+                  <label for="incidentFontScale">Fonte dos incidentes</label>
+                  <output id="incidentFontScaleValue" for="incidentFontScale">100%</output>
+                </div>
+                <input name="incident_font_scale" id="incidentFontScale" type="range" min="85" max="200" step="5" value="100" />
+                <div class="admin-slider-scale"><span>Compacta</span><span>Padrão</span><span>Ampliada</span></div>
+              </div>
+              <div class="admin-field admin-slider-field">
+                <div class="admin-slider-heading">
+                  <label for="cardFontScale">Fonte dos cards</label>
+                  <output id="cardFontScaleValue" for="cardFontScale">100%</output>
+                </div>
+                <input name="card_font_scale" id="cardFontScale" type="range" min="85" max="200" step="5" value="100" />
+                <div class="admin-slider-scale"><span>Compacta</span><span>Padrão</span><span>Ampliada</span></div>
+              </div>
+              <button class="action admin-reset-button" id="resetCustomizationButton" type="button">Redefinir personalização</button>
+            </div>
+          </div>
+        </section>
+
+        <footer class="admin-actions">
+          <span id="saveHint" data-state="clean">Nenhuma alteração pendente.</span>
+          <div>
+            <button class="action" id="discardChangesButton" type="button" disabled>Descartar alterações</button>
+            <button class="action primary" id="saveSettingsButton" type="submit" disabled>Salvar configurações</button>
+          </div>
+        </footer>
+      </form>
+    </main>
+  </div>
+
+  <script src="admin.js?v=5"></script>
+</body>
+</html>

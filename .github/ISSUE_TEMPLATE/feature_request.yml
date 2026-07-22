@@ -1,0 +1,51 @@
+name: Sugerir uma melhoria
+description: Proponha uma melhoria concreta para o painel ou para a instalacao.
+title: "[Sugestao]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ideias iniciais e perguntas tambem podem ser publicadas em Discussions. Use este formulario quando a proposta ja estiver bem definida.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema que a melhoria resolve
+      description: Descreva a necessidade sem partir diretamente para uma solucao.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Solucao sugerida
+      description: Explique como a melhoria funcionaria para quem usa o painel.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area afetada
+      options:
+        - Dashboard para TV
+        - Configuracoes
+        - Integracao com Zabbix
+        - Instalacao e documentacao
+        - Seguranca
+        - Outro
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas consideradas
+      description: Informe outras abordagens que voce avaliou, se houver.
+  - type: checkboxes
+    id: agreement
+    attributes:
+      label: Confirmacoes
+      options:
+        - label: A sugestao nao contem dados internos ou credenciais.
+          required: true
+        - label: Entendo que a abertura desta Issue nao garante a implementacao.
+          required: true

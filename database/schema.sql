@@ -1,0 +1,43 @@
+CREATE DATABASE IF NOT EXISTS zabbix_monitor_tv
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+
+USE zabbix_monitor_tv;
+
+CREATE TABLE IF NOT EXISTS users (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  username VARCHAR(80) NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  name VARCHAR(120) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY users_username_unique (username)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS settings (
+  id TINYINT UNSIGNED NOT NULL,
+  zabbix_api_url VARCHAR(512) NOT NULL DEFAULT '',
+  zabbix_token_encrypted TEXT NULL,
+  refresh_seconds INT UNSIGNED NOT NULL DEFAULT 10,
+  api_limit INT UNSIGNED NOT NULL DEFAULT 500,
+  page_interval_seconds INT UNSIGNED NOT NULL DEFAULT 15,
+  sort_mode VARCHAR(32) NOT NULL DEFAULT 'recent',
+  dashboard_theme VARCHAR(32) NOT NULL DEFAULT 'graphite',
+  page_transition VARCHAR(32) NOT NULL DEFAULT 'fade',
+  incident_font_scale TINYINT UNSIGNED NOT NULL DEFAULT 100,
+  card_font_scale TINYINT UNSIGNED NOT NULL DEFAULT 100,
+  severity_disaster_color CHAR(7) NOT NULL DEFAULT '#ef4444',
+  severity_high_color CHAR(7) NOT NULL DEFAULT '#f97316',
+  severity_average_color CHAR(7) NOT NULL DEFAULT '#f59e0b',
+  severity_warning_color CHAR(7) NOT NULL DEFAULT '#eab308',
+  fetch_mode VARCHAR(32) NOT NULL DEFAULT 'incidents',
+  monitored_group_ids TEXT NULL,
+  monitored_host_ids TEXT NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO settings (id)
+VALUES (1)
+ON DUPLICATE KEY UPDATE id = id;

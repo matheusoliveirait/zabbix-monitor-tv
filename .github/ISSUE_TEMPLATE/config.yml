@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ideias e perguntas
+    url: https://github.com/matheusoliveirait/zabbix-monitor-tv/discussions
+    about: Use Discussions para conversar sobre ideias ainda abertas, duvidas e exemplos de uso.
+  - name: Relatar uma vulnerabilidade
+    url: https://github.com/matheusoliveirait/zabbix-monitor-tv/security/advisories/new
+    about: Nao publique vulnerabilidades exploraveis em uma Issue aberta.

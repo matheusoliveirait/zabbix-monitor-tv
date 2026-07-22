@@ -1,0 +1,58 @@
+name: Relatar um erro
+description: Informe um comportamento incorreto ou uma falha reproduzivel.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado pelo relato. Remova nomes de clientes, IPs internos, tokens e credenciais antes de enviar.
+  - type: textarea
+    id: description
+    attributes:
+      label: Descricao do problema
+      description: Explique o que aconteceu e qual era o resultado esperado.
+      placeholder: O painel deveria..., mas apresentou...
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Como reproduzir
+      description: Liste os passos necessarios para reproduzir o comportamento.
+      placeholder: |
+        1. Acesse...
+        2. Configure...
+        3. Observe...
+    validations:
+      required: true
+  - type: input
+    id: zabbix-version
+    attributes:
+      label: Versao do Zabbix
+      placeholder: 7.0.x
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Ambiente
+      description: Informe PHP, banco, servidor web, sistema operacional e navegador.
+      placeholder: PHP 8.2, MariaDB 10.4, Apache, Windows 11, Edge
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidencias anonimizadas
+      description: Adicione mensagens de erro, capturas ou logs sem dados sensiveis.
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacidade
+      options:
+        - label: Confirmei que o relato nao contem tokens, senhas, IPs internos ou dados reais de clientes.
+          required: true
+        - label: Pesquisei Issues existentes antes de abrir este relato.
+          required: true

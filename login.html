@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="graphite">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Central de Incidentes - Acesso</title>
+  <link rel="icon" href="assets/favicon.svg?v=6" type="image/svg+xml" />
+  <script src="theme.js?v=1"></script>
+  <link rel="stylesheet" href="styles.css?v=4" />
+</head>
+<body class="auth-page">
+  <main class="auth-shell">
+    <section class="auth-visual" aria-label="Prévia da Central de Incidentes">
+      <a class="auth-brand" href="index.html" data-home-link aria-label="Ir para o painel">
+        <span class="auth-brand-mark" aria-hidden="true">
+          <img src="assets/logo-mark.svg?v=6" data-theme-logo alt="" />
+        </span>
+        <div>
+          <strong>Central de Incidentes</strong>
+          <span>Monitoramento Zabbix</span>
+        </div>
+      </a>
+
+      <div class="dashboard-preview" aria-hidden="true">
+        <div class="preview-header">
+          <div>
+            <span class="preview-kicker">Operação</span>
+            <strong>Monitoramento de Infraestrutura</strong>
+          </div>
+          <span class="preview-time">14:32</span>
+        </div>
+        <div class="preview-metrics">
+          <div class="preview-metric active"><span>Ativos</span><strong>3</strong></div>
+          <div class="preview-metric disaster"><span>Desastre</span><strong>0</strong></div>
+          <div class="preview-metric high"><span>Alta</span><strong>1</strong></div>
+          <div class="preview-metric average"><span>Média</span><strong>1</strong></div>
+          <div class="preview-metric warning"><span>Atenção</span><strong>1</strong></div>
+        </div>
+        <div class="preview-table-head">
+          <span>Criticidade</span><span>Cliente / host</span><span>Problema</span><span>Duração</span>
+        </div>
+        <div class="preview-events">
+          <div class="preview-event">
+            <span class="preview-severity high">Alta</span><strong>Datacenter</strong><span>Storage indisponível por ICMP</span><time>1h 30m</time>
+          </div>
+          <div class="preview-event">
+            <span class="preview-severity average">Média</span><strong>Filial Norte</strong><span>Gateway principal indisponível</span><time>18m</time>
+          </div>
+          <div class="preview-event">
+            <span class="preview-severity warning">Atenção</span><strong>Matriz</strong><span>Interface com alta taxa de erros</span><time>7m</time>
+          </div>
+        </div>
+      </div>
+
+      <div class="auth-visual-copy">
+        <h1>Incidentes claros.<br />Decisões mais rápidas.</h1>
+        <p>Uma visão direta do que exige atenção agora.</p>
+      </div>
+    </section>
+
+    <section class="auth-access">
+      <div class="auth-form-wrap">
+        <a class="auth-mobile-brand" href="index.html" data-home-link aria-label="Ir para o painel">
+          <span class="auth-brand-mark" aria-hidden="true">
+            <img src="assets/logo-mark.svg?v=6" data-theme-logo alt="" />
+          </span>
+          <strong>Central de Incidentes</strong>
+        </a>
+
+        <section class="auth-message" id="messagePanel" role="status" aria-live="polite" hidden>
+          <div id="messageText"></div>
+        </section>
+
+        <section id="loginPanel" hidden>
+          <div class="auth-heading">
+            <span>Acesso seguro</span>
+            <h2>Bem-vindo de volta</h2>
+            <p>Entre para acessar o painel e as configurações.</p>
+          </div>
+          <form id="loginForm" class="auth-form">
+            <label>
+              Usuário
+              <input name="username" type="text" autocomplete="username" autofocus required />
+            </label>
+            <label>
+              Senha
+              <input name="password" type="password" autocomplete="current-password" required />
+            </label>
+            <button class="auth-submit" type="submit">Entrar</button>
+          </form>
+        </section>
+
+        <section id="setupPanel" hidden>
+          <div class="auth-heading">
+            <span>Primeiro acesso</span>
+            <h2>Crie o administrador</h2>
+            <p>Esta conta protege o painel e as credenciais do Zabbix.</p>
+          </div>
+          <form id="setupForm" class="auth-form">
+            <label>
+              Nome
+              <input name="name" type="text" value="Administrador" autocomplete="name" required />
+            </label>
+            <label>
+              Usuário
+              <input name="username" type="text" value="admin" autocomplete="username" required />
+            </label>
+            <label>
+              Senha
+              <input name="password" type="password" autocomplete="new-password" minlength="8" required />
+            </label>
+            <button class="auth-submit" type="submit">Criar administrador</button>
+          </form>
+        </section>
+
+        <div class="auth-footnote">Central de Incidentes <span>para Zabbix</span></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="login.js?v=2"></script>
+</body>
+</html>
