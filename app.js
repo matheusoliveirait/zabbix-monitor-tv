@@ -133,8 +133,8 @@
     }
 
     function applyPanelCustomization() {
-      const incidentScale = clampNumber(state.config.INCIDENT_FONT_SCALE, 85, 125, 100) / 100;
-      const cardScale = clampNumber(state.config.CARD_FONT_SCALE, 85, 125, 100) / 100;
+      const incidentScale = clampNumber(state.config.INCIDENT_FONT_SCALE, 85, 200, 100) / 100;
+      const cardScale = clampNumber(state.config.CARD_FONT_SCALE, 85, 200, 100) / 100;
       const rootStyle = document.documentElement.style;
 
       rootStyle.setProperty("--incident-primary-size", `clamp(${18 * incidentScale}px, ${1.35 * incidentScale}vw, ${24 * incidentScale}px)`);
@@ -653,7 +653,7 @@
     }
 
     function getFontScale(key) {
-      return clampNumber(state.config[key], 85, 125, 100);
+      return clampNumber(state.config[key], 85, 200, 100);
     }
 
     function captureFontEditorValues() {
@@ -679,13 +679,13 @@
       elements.fontStepButtons.forEach(button => {
         const scale = button.dataset.fontTarget === "incident" ? incidentScale : cardScale;
         const step = Number(button.dataset.fontStep);
-        button.disabled = state.fontEditor.saving || (step < 0 ? scale <= 85 : scale >= 125);
+        button.disabled = state.fontEditor.saving || (step < 0 ? scale <= 85 : scale >= 200);
       });
     }
 
     function setFontScales(incidentScale, cardScale, message = "") {
-      state.config.INCIDENT_FONT_SCALE = clampNumber(incidentScale, 85, 125, 100);
-      state.config.CARD_FONT_SCALE = clampNumber(cardScale, 85, 125, 100);
+      state.config.INCIDENT_FONT_SCALE = clampNumber(incidentScale, 85, 200, 100);
+      state.config.CARD_FONT_SCALE = clampNumber(cardScale, 85, 200, 100);
       applyPanelCustomization();
       updateFontEditor(message);
     }

@@ -19,7 +19,7 @@ O projeto consulta a API oficial do Zabbix, protege o token no backend e apresen
 - Ordenacao por hora, criticidade, cliente/host, problema e duracao.
 - Paginacao automatica de seis incidentes com intervalo configuravel.
 - Transicoes de pagina configuraveis: sem efeito, fade, deslizar ou zoom suave.
-- Escala independente das fontes dos cards e da lista de incidentes.
+- Escala independente das fontes dos cards e da lista de incidentes, de 85% a 200% em passos de 5%.
 - Ajuste rapido de fontes no proprio painel, com previa antes de aplicar.
 - Destaques discretos para incidentes novos e resolvidos recentemente.
 - Configuracao pelo botao no cabecalho ou pela tecla `F2`.

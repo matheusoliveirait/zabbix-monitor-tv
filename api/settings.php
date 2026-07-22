@@ -67,13 +67,13 @@ try {
         $incidentFontScale = clamp_int(
             $input['incident_font_scale'] ?? $current['incident_font_scale'],
             85,
-            125,
+            200,
             (int)$current['incident_font_scale']
         );
         $cardFontScale = clamp_int(
             $input['card_font_scale'] ?? $current['card_font_scale'],
             85,
-            125,
+            200,
             (int)$current['card_font_scale']
         );
 
@@ -142,8 +142,8 @@ try {
             clamp_int($input['page_interval_seconds'] ?? 15, 5, 120, 15),
             $sortMode,
             $pageTransition,
-            clamp_int($input['incident_font_scale'] ?? 100, 85, 125, 100),
-            clamp_int($input['card_font_scale'] ?? 100, 85, 125, 100),
+            clamp_int($input['incident_font_scale'] ?? 100, 85, 200, 100),
+            clamp_int($input['card_font_scale'] ?? 100, 85, 200, 100),
             $fetchMode,
             encode_ids($input['monitored_group_ids'] ?? []),
             encode_ids($input['monitored_host_ids'] ?? []),
