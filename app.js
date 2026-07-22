@@ -64,7 +64,6 @@
       fontResetButton: document.getElementById("fontResetButton"),
       fontDiscardButton: document.getElementById("fontDiscardButton"),
       fontSaveButton: document.getElementById("fontSaveButton"),
-      refreshButton: document.getElementById("refreshButton"),
       settingsButton: document.getElementById("settingsButton"),
       fullscreenButton: document.getElementById("fullscreenButton"),
       totalCard: document.getElementById("totalCard"),
@@ -192,7 +191,6 @@
     async function loadProblemsFromBackend() {
       state.loading = true;
       state.error = null;
-      elements.refreshButton.disabled = true;
       elements.footerStatus.textContent = "Consultando backend...";
 
       try {
@@ -235,7 +233,6 @@
         render();
       } finally {
         state.loading = false;
-        elements.refreshButton.disabled = false;
       }
     }
 
@@ -944,7 +941,6 @@
         changeFontScale(button.dataset.fontTarget, Number(button.dataset.fontStep));
       });
     });
-    elements.refreshButton.addEventListener("click", loadProblems);
     elements.settingsButton.addEventListener("click", openSettings);
     elements.fullscreenButton.addEventListener("click", toggleFullscreen);
     elements.sortButtons.forEach(button => {

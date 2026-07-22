@@ -1081,16 +1081,36 @@ h1 {
   font-weight: 500;
 }
 
+.utility-actions {
+  gap: 6px;
+}
+
 .icon-button {
-  border-color: #2b3c49;
-  background: #101a23;
+  width: 38px;
+  height: 38px;
+  border-color: transparent;
+  color: #7f93a4;
+  background: transparent;
   box-shadow: none;
+  opacity: 0.68;
+}
+
+.icon-button .icon {
+  width: 19px;
+  height: 19px;
 }
 
 .icon-button:hover,
 .icon-button:focus-visible {
-  border-color: #4f6778;
-  background: #14212b;
+  transform: none;
+  border-color: #344957;
+  color: #d5e0e7;
+  background: #101a23;
+  opacity: 1;
+}
+
+.icon-button[aria-expanded="true"] {
+  opacity: 1;
 }
 
 .summary {
@@ -1386,8 +1406,8 @@ h1 {
   }
 
   .icon-button {
-    width: 38px;
-    height: 38px;
+    width: 34px;
+    height: 34px;
   }
 
   .summary {
@@ -1430,7 +1450,7 @@ h1 {
   }
 
   .icon-button {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
   }
 }
