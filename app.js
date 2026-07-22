@@ -603,10 +603,10 @@
       if (!clock) return "-";
 
       const date = new Date(Number(clock) * 1000);
-      const now = new Date();
-      const sameDay = date.toDateString() === now.toDateString();
+      const ageMs = Math.max(0, Date.now() - date.getTime());
+      const isLessThanOneDayOld = ageMs < 24 * 60 * 60 * 1000;
 
-      if (sameDay) {
+      if (isLessThanOneDayOld) {
         return date.toLocaleTimeString("pt-BR", {
           hour: "2-digit",
           minute: "2-digit",
@@ -616,10 +616,8 @@
 
       return date.toLocaleDateString("pt-BR", {
         day: "2-digit",
-        month: "2-digit"
-      }) + " " + date.toLocaleTimeString("pt-BR", {
-        hour: "2-digit",
-        minute: "2-digit"
+        month: "2-digit",
+        year: "numeric"
       });
     }
 
