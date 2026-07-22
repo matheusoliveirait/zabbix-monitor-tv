@@ -249,6 +249,7 @@ function ensure_settings_schema(): void
 
     $columns = db()->query('SHOW COLUMNS FROM settings')->fetchAll(PDO::FETCH_COLUMN);
     $missingColumns = [
+        'dashboard_theme' => "VARCHAR(32) NOT NULL DEFAULT 'graphite'",
         'page_transition' => "VARCHAR(32) NOT NULL DEFAULT 'fade'",
         'incident_font_scale' => 'TINYINT UNSIGNED NOT NULL DEFAULT 100',
         'card_font_scale' => 'TINYINT UNSIGNED NOT NULL DEFAULT 100',
@@ -285,12 +286,19 @@ function settings_row(): array
     return settings_row();
 }
 
+function normalize_dashboard_theme(mixed $theme): string
+{
+    $theme = (string)$theme;
+    return in_array($theme, ['graphite', 'light', 'blue'], true) ? $theme : 'graphite';
+}
+
 function frontend_config_from_settings(array $settings): array
 {
     return [
         'REFRESH_SECONDS' => (int)$settings['refresh_seconds'],
         'PAGE_INTERVAL_SECONDS' => (int)$settings['page_interval_seconds'],
         'SORT_MODE' => $settings['sort_mode'],
+        'DASHBOARD_THEME' => normalize_dashboard_theme($settings['dashboard_theme'] ?? null),
         'PAGE_TRANSITION' => $settings['page_transition'] ?? 'fade',
         'INCIDENT_FONT_SCALE' => (int)($settings['incident_font_scale'] ?? 100),
         'CARD_FONT_SCALE' => (int)($settings['card_font_scale'] ?? 100),

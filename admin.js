@@ -27,10 +27,12 @@ const cardFontScale = document.getElementById("cardFontScale");
 const cardFontScaleValue = document.getElementById("cardFontScaleValue");
 const backToPanelLink = document.getElementById("backToPanelLink");
 const homeLinks = Array.from(document.querySelectorAll("[data-home-link]"));
+const adminLayout = document.querySelector(".admin-layout");
 const DEFAULT_API_PATH = "/zabbix/api_jsonrpc.php";
 const TOKEN_MASK = "TOKEN_ARMAZENADO";
 const PREVIEW_STORAGE_KEY = "central-incidentes-preview-settings-v1";
 const DEFAULT_CUSTOMIZATION = {
+  dashboard_theme: "graphite",
   refresh_seconds: 10,
   page_interval_seconds: 15,
   sort_mode: "recent",
@@ -45,6 +47,37 @@ let editingStoredToken = false;
 let loadedSettings = null;
 let savedSnapshot = "";
 
+function waitForThemeAnimation() {
+  return new Promise(resolve => {
+    let timeoutId;
+    const finish = event => {
+      if (event && event.target !== adminLayout) return;
+      adminLayout.removeEventListener("animationend", finish);
+      clearTimeout(timeoutId);
+      resolve();
+    };
+
+    adminLayout.addEventListener("animationend", finish);
+    timeoutId = setTimeout(finish, 260);
+  });
+}
+
+async function transitionAdminTheme(value) {
+  const theme = window.IncidentTheme.normalize(value);
+  if (document.documentElement.dataset.theme === theme) {
+    window.IncidentTheme.apply(theme);
+    return;
+  }
+
+  document.documentElement.classList.add("theme-fade-out");
+  await waitForThemeAnimation();
+  window.IncidentTheme.apply(theme);
+  document.documentElement.classList.remove("theme-fade-out");
+  document.documentElement.classList.add("theme-fade-in");
+  await waitForThemeAnimation();
+  document.documentElement.classList.remove("theme-fade-in");
+}
+
 const PREVIEW_DEFAULT_SETTINGS = {
   zabbix_api_url: "http://zabbix.exemplo.local/zabbix/api_jsonrpc.php",
   has_zabbix_token: true,
@@ -52,6 +85,7 @@ const PREVIEW_DEFAULT_SETTINGS = {
   api_limit: 500,
   page_interval_seconds: 15,
   sort_mode: "recent",
+  dashboard_theme: "graphite",
   page_transition: "fade",
   incident_font_scale: 100,
   card_font_scale: 100,
@@ -306,6 +340,9 @@ function populateSettings(settings) {
   formField("api_limit").value = settings.api_limit || 500;
   formField("page_interval_seconds").value = settings.page_interval_seconds || 15;
   formField("sort_mode").value = settings.sort_mode || "recent";
+  const dashboardTheme = window.IncidentTheme.normalize(settings.dashboard_theme);
+  formField("dashboard_theme").value = dashboardTheme;
+  window.IncidentTheme.apply(dashboardTheme);
   formField("page_transition").value = settings.page_transition || "fade";
   formField("incident_font_scale").value = settings.incident_font_scale || 100;
   formField("card_font_scale").value = settings.card_font_scale || 100;
@@ -375,6 +412,7 @@ settingsForm.addEventListener("submit", event => {
         has_zabbix_token: true,
       };
       savePreviewSettings(previewSettings);
+      await transitionAdminTheme(previewSettings.dashboard_theme);
       populateSettings(previewSettings);
       showMessage("Preferências salvas neste navegador para o modo demonstração.", "success");
       return;
@@ -384,6 +422,7 @@ settingsForm.addEventListener("submit", event => {
       method: "POST",
       body: JSON.stringify(payload),
     });
+    await transitionAdminTheme(payload.dashboard_theme);
     showMessage("Configuracoes salvas.", "success");
     await loadSettings();
   });

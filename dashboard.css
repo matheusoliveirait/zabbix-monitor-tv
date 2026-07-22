@@ -112,6 +112,272 @@
       background: transparent;
     }
 
+/* Optional dashboard themes keep severity colors stable and change the surrounding contrast. */
+html[data-theme="light"] {
+  color-scheme: light;
+  --bg: #e7ebee;
+  --surface: #f8fafb;
+  --surface-2: #eef2f4;
+  --surface-3: #e2e8ec;
+  --border: #c7d0d6;
+  --text: #1d2830;
+  --muted: #596a76;
+  --muted-2: #73818a;
+  --info: #147d9f;
+  --dashboard-page: #e7ebee;
+  --dashboard-topbar: #eef2f4;
+  --dashboard-surface: #f8fafb;
+  --dashboard-panel: #ffffff;
+  --dashboard-row: #ffffff;
+  --dashboard-row-alt: #f3f5f6;
+  --dashboard-hover: #edf2f5;
+  --dashboard-selected: #e1ebf0;
+  --dashboard-selected-border: #8ba2af;
+  --dashboard-border: #c7d0d6;
+  --dashboard-border-soft: #d9dfe3;
+  --dashboard-resolved: #edf7f1;
+  --dashboard-new: #eaf5f9;
+  --dashboard-popover: #ffffff;
+  --dashboard-control: #f1f4f6;
+  --dashboard-scroll-track: #edf1f3;
+  --dashboard-scroll-thumb: #9aa8b1;
+  --dashboard-icon: #65737d;
+  --dashboard-icon-hover: #27343c;
+  --dashboard-ok-bg: #e4f5ea;
+  --dashboard-ok-text: #17633a;
+  --dashboard-alert-bg: #f9e8e9;
+  --dashboard-alert-text: #9a2f36;
+  --dashboard-warning-bg: #fbf1d8;
+  --dashboard-warning-text: #775510;
+}
+
+html[data-theme="graphite"] {
+  color-scheme: dark;
+  --bg: #111214;
+  --surface: #1b1d20;
+  --surface-2: #232529;
+  --surface-3: #2b2e32;
+  --border: #383b40;
+  --text: #f1f3f4;
+  --muted: #a3a7ac;
+  --muted-2: #777c82;
+  --info: #70c9e6;
+  --dashboard-page: #111214;
+  --dashboard-topbar: #151618;
+  --dashboard-surface: #1b1d20;
+  --dashboard-panel: #121315;
+  --dashboard-row: #1b1d20;
+  --dashboard-row-alt: #17191b;
+  --dashboard-hover: #25282b;
+  --dashboard-selected: #2a2d31;
+  --dashboard-selected-border: #5a5f65;
+  --dashboard-border: #383b40;
+  --dashboard-border-soft: #2c2f33;
+  --dashboard-resolved: #18261e;
+  --dashboard-new: #17252b;
+  --dashboard-popover: #1a1c1f;
+  --dashboard-control: #222529;
+  --dashboard-scroll-track: #121315;
+  --dashboard-scroll-thumb: #565b61;
+  --dashboard-icon: #8b9096;
+  --dashboard-icon-hover: #f0f2f4;
+  --dashboard-ok-bg: #18291f;
+  --dashboard-ok-text: #a9dfbd;
+  --dashboard-alert-bg: #301b1e;
+  --dashboard-alert-text: #f4b7ba;
+  --dashboard-warning-bg: #302819;
+  --dashboard-warning-text: #efd28c;
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]),
+:is(html[data-theme="light"], html[data-theme="graphite"]) body {
+  background: var(--dashboard-page);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .topbar {
+  border-bottom-color: var(--dashboard-border);
+  background: var(--dashboard-topbar);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .clock-date,
+:is(html[data-theme="light"], html[data-theme="graphite"]) .card-note,
+:is(html[data-theme="light"], html[data-theme="graphite"]) .secondary,
+:is(html[data-theme="light"], html[data-theme="graphite"]) .problem-list.compact .secondary,
+:is(html[data-theme="light"], html[data-theme="graphite"]) .panel-subtitle {
+  color: var(--muted);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .icon-button {
+  color: var(--dashboard-icon);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .icon-button:hover,
+:is(html[data-theme="light"], html[data-theme="graphite"]) .icon-button:focus-visible {
+  border-color: var(--dashboard-border);
+  color: var(--dashboard-icon-hover);
+  background: var(--dashboard-surface);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .icon-button[aria-expanded="true"] {
+  border-color: var(--info);
+  color: var(--info);
+  background: var(--dashboard-selected);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .summary {
+  border-color: var(--dashboard-border);
+  background: var(--dashboard-surface);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .card,
+:is(html[data-theme="light"], html[data-theme="graphite"]) .total-card,
+:is(html[data-theme="light"], html[data-theme="graphite"]) .total-card.alerting {
+  color: var(--text);
+  background: var(--dashboard-surface);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .card:hover {
+  background: var(--dashboard-hover);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .card[aria-pressed="true"] {
+  background: var(--dashboard-selected);
+  box-shadow: inset 0 0 0 1px var(--dashboard-selected-border);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .card[aria-pressed="true"] .card-label {
+  color: var(--text);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .card-label {
+  color: var(--muted);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .incidents {
+  border-color: var(--dashboard-border);
+  color: var(--text);
+  background: var(--dashboard-panel);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .panel-head {
+  border-bottom-color: var(--dashboard-border);
+  background: var(--dashboard-surface);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .page-title {
+  color: var(--text);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .table-head {
+  border-bottom-color: var(--dashboard-border);
+  color: var(--muted-2);
+  background: var(--dashboard-panel);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .problem-row,
+:is(html[data-theme="light"], html[data-theme="graphite"]) .problem-row:nth-child(even) {
+  border-bottom-color: var(--dashboard-border-soft);
+  color: var(--text);
+  background: var(--dashboard-row);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .problem-row:nth-child(even) {
+  background: var(--dashboard-row-alt);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .problem-row.resolved,
+:is(html[data-theme="light"], html[data-theme="graphite"]) .problem-row.resolved:nth-child(even) {
+  background: var(--dashboard-resolved);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .problem-row.new-incident,
+:is(html[data-theme="light"], html[data-theme="graphite"]) .problem-row.new-incident:nth-child(even) {
+  background: var(--dashboard-new);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .event-time,
+:is(html[data-theme="light"], html[data-theme="graphite"]) .problem-list.compact .event-time,
+:is(html[data-theme="light"], html[data-theme="graphite"]) .sort-button.active {
+  color: var(--info);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .duration,
+:is(html[data-theme="light"], html[data-theme="graphite"]) .problem-list.compact .duration {
+  color: var(--text);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .status-pill {
+  border-color: var(--dashboard-ok-text);
+  color: var(--dashboard-ok-text);
+  background: var(--dashboard-ok-bg);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .status-pill.alerting {
+  border-color: var(--dashboard-alert-text);
+  color: var(--dashboard-alert-text);
+  background: var(--dashboard-alert-bg);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .status-pill.warning {
+  border-color: var(--dashboard-warning-text);
+  color: var(--dashboard-warning-text);
+  background: var(--dashboard-warning-bg);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .problem-list {
+  scrollbar-color: var(--dashboard-scroll-thumb) var(--dashboard-scroll-track);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .problem-list::-webkit-scrollbar-track {
+  background: var(--dashboard-scroll-track);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .problem-list::-webkit-scrollbar-thumb {
+  border-color: var(--dashboard-scroll-track);
+  background: var(--dashboard-scroll-thumb);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .footer {
+  color: var(--muted-2);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .font-popover {
+  border-color: var(--dashboard-border);
+  color: var(--text);
+  background: var(--dashboard-popover);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .font-popover-head,
+:is(html[data-theme="light"], html[data-theme="graphite"]) .font-setting {
+  border-color: var(--dashboard-border);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .font-stepper {
+  border-color: var(--dashboard-border);
+  background: var(--dashboard-control);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .font-stepper button,
+:is(html[data-theme="light"], html[data-theme="graphite"]) .font-stepper output {
+  border-color: var(--dashboard-border);
+  color: var(--text);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .font-stepper button:hover,
+:is(html[data-theme="light"], html[data-theme="graphite"]) .font-stepper button:focus-visible {
+  background: var(--dashboard-hover);
+}
+
+:is(html[data-theme="light"], html[data-theme="graphite"]) .font-action {
+  border-color: var(--dashboard-border);
+  color: var(--text);
+  background: var(--dashboard-control);
+}
+
+html[data-theme="light"] .error-title {
+  color: #a32d35;
+}
+
     .brand-mark img {
       display: block;
       width: 100%;

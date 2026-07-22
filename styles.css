@@ -1126,6 +1126,147 @@
       50% { opacity: 0.25; }
     }
 
+    .admin-theme-field {
+      min-width: 0;
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+
+    .admin-theme-field legend {
+      margin-bottom: 10px;
+      color: #c6d3da;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .admin-theme-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .admin-theme-choice {
+      display: grid;
+      grid-template-rows: 92px auto;
+      gap: 11px;
+      min-width: 0;
+      padding: 10px;
+      border: 1px solid #2b3d49;
+      border-radius: 6px;
+      color: #afbec7;
+      background: #0b141b;
+      cursor: pointer;
+    }
+
+    .admin-theme-choice:hover {
+      border-color: #3c5665;
+      background: #0e1921;
+    }
+
+    .admin-theme-choice:has(input:checked) {
+      border-color: #3989a4;
+      color: #f0f8fb;
+      background: #102631;
+      box-shadow: inset 0 -3px #4cc9f0;
+    }
+
+    .admin-theme-choice:has(input:focus-visible) {
+      outline: 2px solid #4cc9f0;
+      outline-offset: 2px;
+    }
+
+    .admin-theme-choice > input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .admin-theme-choice strong,
+    .admin-theme-choice small {
+      display: block;
+    }
+
+    .admin-theme-choice strong {
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .admin-theme-choice small {
+      min-height: 28px;
+      margin-top: 4px;
+      color: #718594;
+      font-size: 10px;
+      line-height: 1.4;
+    }
+
+    .admin-theme-preview {
+      position: relative;
+      display: grid;
+      grid-template-rows: 17px 27px 1fr 1fr;
+      gap: 4px;
+      width: 100%;
+      height: 92px;
+      padding: 7px;
+      overflow: hidden;
+      border: 1px solid var(--theme-preview-border);
+      border-radius: 4px;
+      background: var(--theme-preview-bg);
+    }
+
+    .admin-theme-preview i {
+      display: block;
+      border-radius: 2px;
+    }
+
+    .theme-preview-header {
+      width: 72%;
+      background: var(--theme-preview-heading);
+    }
+
+    .theme-preview-cards {
+      border-left: 4px solid #f97316;
+      background:
+        linear-gradient(90deg, transparent 32%, var(--theme-preview-bg) 32% 34%, transparent 34% 66%, var(--theme-preview-bg) 66% 68%, transparent 68%),
+        var(--theme-preview-surface);
+    }
+
+    .theme-preview-row {
+      border-left: 4px solid #4cc9f0;
+      background: var(--theme-preview-row);
+    }
+
+    .theme-preview-row:last-child {
+      width: 84%;
+    }
+
+    .theme-preview-blue {
+      --theme-preview-bg: #0d151d;
+      --theme-preview-surface: #101a23;
+      --theme-preview-row: #182630;
+      --theme-preview-heading: #e8eef2;
+      --theme-preview-border: #354957;
+    }
+
+    .theme-preview-light {
+      --theme-preview-bg: #e8ecef;
+      --theme-preview-surface: #ffffff;
+      --theme-preview-row: #d6dce1;
+      --theme-preview-heading: #35414a;
+      --theme-preview-border: #aeb8c0;
+    }
+
+    .theme-preview-graphite {
+      --theme-preview-bg: #111214;
+      --theme-preview-surface: #202225;
+      --theme-preview-row: #2a2c30;
+      --theme-preview-heading: #e3e4e6;
+      --theme-preview-border: #46494e;
+    }
+
     @keyframes admin-preview-slide {
       50% { transform: translateX(7px); }
     }
@@ -1345,6 +1486,10 @@
         grid-template-columns: 1fr;
       }
 
+      .admin-theme-grid {
+        grid-template-columns: 1fr;
+      }
+
       .admin-field-heading {
         align-items: flex-start;
         flex-direction: column;
@@ -1466,3 +1611,464 @@
         padding-inline: 20px;
       }
     }
+
+/* Global appearance for the authenticated settings area. */
+html[data-theme="graphite"] {
+  --settings-page: #111214;
+  --settings-sidebar: #181a1d;
+  --settings-surface: #1f2225;
+  --settings-surface-2: #25282b;
+  --settings-border: #373b3f;
+  --settings-border-strong: #51565c;
+  --settings-text: #f1f3f4;
+  --settings-muted: #a1a6ab;
+  --settings-subtle: #747a80;
+  --settings-input: #141618;
+  --settings-accent: #70c9e6;
+  --settings-accent-bg: #20343a;
+  --settings-accent-text: #c4eef8;
+  --settings-button: #23262a;
+  --settings-primary-text: #102028;
+  --settings-scroll: #575c62;
+  --settings-color-scheme: dark;
+}
+
+html[data-theme="light"] {
+  --settings-page: #edf1f3;
+  --settings-sidebar: #f8fafb;
+  --settings-surface: #ffffff;
+  --settings-surface-2: #e7edef;
+  --settings-border: #c7d0d6;
+  --settings-border-strong: #9eacb5;
+  --settings-text: #1f2a31;
+  --settings-muted: #5f707b;
+  --settings-subtle: #7b8992;
+  --settings-input: #ffffff;
+  --settings-accent: #147d9f;
+  --settings-accent-bg: #dceef4;
+  --settings-accent-text: #155b70;
+  --settings-button: #f8fafb;
+  --settings-primary-text: #ffffff;
+  --settings-scroll: #9aa8b1;
+  --settings-color-scheme: light;
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-page {
+  color: var(--settings-text);
+  background: var(--settings-page);
+  color-scheme: var(--settings-color-scheme);
+  scrollbar-color: var(--settings-scroll) var(--settings-page);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-page::-webkit-scrollbar-track {
+  background: var(--settings-page);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-page::-webkit-scrollbar-thumb {
+  border-color: var(--settings-page);
+  background: var(--settings-scroll);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-sidebar {
+  border-color: var(--settings-border);
+  background: var(--settings-sidebar);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-brand,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-sidebar-footer,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-header,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-setting-group,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-actions {
+  border-color: var(--settings-border);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-actions {
+  background: var(--settings-page);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-brand strong,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-header h1,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-view-header h2,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-setting-intro h3,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-field > label,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-field-heading > label,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-slider-heading label,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-choice-field legend,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-theme-field legend {
+  color: var(--settings-text);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-brand span,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-sidebar-footer span,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-header p,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-view-header p,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-setting-intro p,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-hint,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-actions > span,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-choice small,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-theme-choice small,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-slider-scale {
+  color: var(--settings-muted);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-eyebrow,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-nav-item.is-active .admin-nav-index,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-link::before {
+  color: var(--settings-accent);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-nav-item {
+  color: var(--settings-muted);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-nav-item:hover {
+  border-color: var(--settings-border);
+  color: var(--settings-text);
+  background: var(--settings-surface);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-nav-item.is-active {
+  border-color: var(--settings-border-strong);
+  color: var(--settings-text);
+  background: var(--settings-accent-bg);
+  box-shadow: inset 3px 0 var(--settings-accent);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-link,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-logout {
+  color: var(--settings-muted);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-link:hover,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-link:focus-visible,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-logout:hover,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-logout:focus-visible {
+  color: var(--settings-text);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-view-header > span,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-slider-heading output {
+  border-color: var(--settings-border-strong);
+  color: var(--settings-accent);
+  background: var(--settings-accent-bg);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-page input,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-page select,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-url-builder {
+  border-color: var(--settings-border);
+  color: var(--settings-text);
+  background: var(--settings-input);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-page input::placeholder {
+  color: var(--settings-subtle);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-page input:hover,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-page select:hover,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-url-builder:hover {
+  border-color: var(--settings-border-strong);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-page input:focus,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-page select:focus,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-url-builder:focus-within {
+  border-color: var(--settings-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--settings-accent) 14%, transparent);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-page input[readonly],
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-url-builder select,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-url-builder > span {
+  border-color: var(--settings-border);
+  color: var(--settings-muted);
+  background: var(--settings-surface);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-segmented {
+  border-color: var(--settings-border);
+  background: var(--settings-input);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-segmented button {
+  color: var(--settings-muted);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-segmented button.is-active {
+  color: var(--settings-accent-text);
+  background: var(--settings-accent-bg);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-choice,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-theme-choice {
+  border-color: var(--settings-border);
+  color: var(--settings-muted);
+  background: var(--settings-input);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-choice:hover,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-theme-choice:hover {
+  border-color: var(--settings-border-strong);
+  background: var(--settings-surface);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-choice:has(input:checked),
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-theme-choice:has(input:checked) {
+  border-color: var(--settings-accent);
+  color: var(--settings-text);
+  background: var(--settings-accent-bg);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-choice:has(input:checked) {
+  box-shadow: inset 3px 0 var(--settings-accent);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-theme-choice:has(input:checked) {
+  box-shadow: inset 0 -3px var(--settings-accent);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-page .admin-slider-field input[type="range"] {
+  background: var(--settings-border);
+  accent-color: var(--settings-accent);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-page .admin-slider-field input[type="range"]::-webkit-slider-thumb {
+  border-color: var(--settings-input);
+  background: var(--settings-accent);
+  box-shadow: 0 0 0 1px var(--settings-accent);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-page .action {
+  border-color: var(--settings-border);
+  color: var(--settings-text);
+  background: var(--settings-button);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-page .action:hover,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-page .action:focus-visible {
+  border-color: var(--settings-border-strong);
+  color: var(--settings-text);
+  background: var(--settings-surface-2);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-page .action.primary {
+  border-color: var(--settings-accent);
+  color: var(--settings-primary-text);
+  background: var(--settings-accent);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-page .action:disabled {
+  border-color: var(--settings-border);
+  color: var(--settings-subtle);
+  background: var(--settings-surface);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-message {
+  border-color: var(--settings-border-strong);
+  color: var(--settings-muted);
+  background: var(--settings-surface);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-message[data-type="success"] {
+  border-color: #3d7858;
+  color: #a9dfbd;
+  background: #18291f;
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-message[data-type="warning"] {
+  border-color: #7c6939;
+  color: #efd28c;
+  background: #302819;
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .admin-message[data-type="error"] {
+  border-color: #8f474d;
+  color: #f3b6ba;
+  background: #2e1c1f;
+}
+
+html[data-theme="light"] .admin-message[data-type="success"] {
+  border-color: #92c6a8;
+  color: #17633a;
+  background: #e7f5ec;
+}
+
+html[data-theme="light"] .admin-message[data-type="warning"] {
+  border-color: #d9bd78;
+  color: #775510;
+  background: #fbf1d8;
+}
+
+html[data-theme="light"] .admin-message[data-type="error"] {
+  border-color: #dba8ac;
+  color: #8d2d34;
+  background: #faeaeb;
+}
+
+html[data-theme="graphite"] {
+  --login-page: #111214;
+  --login-visual: #141618;
+  --login-access: #1b1d20;
+  --login-surface: #202225;
+  --login-surface-2: #181a1d;
+  --login-border: #3a3e42;
+  --login-text: #f1f3f4;
+  --login-muted: #a1a6ab;
+  --login-subtle: #747a80;
+  --login-accent: #70c9e6;
+  --login-accent-hover: #9edbec;
+  --login-button-text: #102028;
+}
+
+html[data-theme="light"] {
+  --login-page: #e7ebee;
+  --login-visual: #dfe5e8;
+  --login-access: #f8fafb;
+  --login-surface: #ffffff;
+  --login-surface-2: #eef2f4;
+  --login-border: #c5cfd5;
+  --login-text: #1f2a31;
+  --login-muted: #5f707b;
+  --login-subtle: #7c8991;
+  --login-accent: #147d9f;
+  --login-accent-hover: #106884;
+  --login-button-text: #ffffff;
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .auth-page {
+  color: var(--login-text);
+  background: var(--login-page);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .auth-visual {
+  border-color: var(--login-border);
+  color: var(--login-text);
+  background: var(--login-visual);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .auth-access {
+  color: var(--login-text);
+  background: var(--login-access);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .dashboard-preview {
+  border-color: var(--login-border);
+  background: var(--login-surface-2);
+  box-shadow: none;
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .preview-header,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .preview-event {
+  border-color: var(--login-border);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .preview-kicker,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .auth-heading > span,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .auth-footnote span {
+  color: var(--login-accent);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .preview-metrics {
+  border-color: var(--login-border);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .preview-metric {
+  background: var(--login-surface);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .preview-metric span,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .preview-table-head,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .auth-visual-copy p,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .auth-heading p,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .auth-footnote {
+  color: var(--login-muted);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .preview-event {
+  color: var(--login-muted);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .preview-event strong,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .preview-time,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .preview-header strong,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .auth-visual-copy h1,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .auth-heading h2,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .auth-form label {
+  color: var(--login-text);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .auth-form input {
+  border-color: var(--login-border);
+  color: var(--login-text);
+  background: var(--login-surface-2);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .auth-form input:focus {
+  border-color: var(--login-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--login-accent) 14%, transparent);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .auth-submit {
+  color: var(--login-button-text);
+  background: var(--login-accent);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .auth-submit:hover,
+:is(html[data-theme="graphite"], html[data-theme="light"]) .auth-submit:focus-visible {
+  background: var(--login-accent-hover);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .auth-message {
+  border-color: var(--login-border);
+  color: var(--login-muted);
+  background: var(--login-surface);
+}
+
+:is(html[data-theme="graphite"], html[data-theme="light"]) .auth-message[data-type="error"] {
+  border-color: #8f474d;
+  color: #f3b6ba;
+  background: #2e1c1f;
+}
+
+html[data-theme="light"] .auth-message[data-type="error"] {
+  border-color: #dba8ac;
+  color: #8d2d34;
+  background: #faeaeb;
+}
+
+html.theme-fade-out .admin-layout {
+  pointer-events: none;
+  animation: admin-theme-fade-out 170ms ease forwards;
+}
+
+html.theme-fade-in .admin-layout {
+  pointer-events: none;
+  animation: admin-theme-fade-in 210ms ease forwards;
+}
+
+@keyframes admin-theme-fade-out {
+  to {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+}
+
+@keyframes admin-theme-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.theme-fade-out .admin-layout,
+  html.theme-fade-in .admin-layout {
+    animation-duration: 1ms;
+  }
+}

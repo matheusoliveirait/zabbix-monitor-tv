@@ -12,6 +12,15 @@ const nextUrl = new URLSearchParams(window.location.search).get("next");
 const previewMode = new URLSearchParams(window.location.search).get("preview");
 const homeLinks = Array.from(document.querySelectorAll("[data-home-link]"));
 
+async function loadAppearance() {
+  try {
+    const appearance = await api("api/appearance.php");
+    window.IncidentTheme.apply(appearance.theme);
+  } catch {
+    window.IncidentTheme.apply(window.IncidentTheme.getStored());
+  }
+}
+
 function showPanel(name) {
   Object.entries(panels).forEach(([key, panel]) => {
     panel.hidden = key !== name;
@@ -123,7 +132,9 @@ if (previewMode === "setup" || previewMode === "login") {
   homeLinks.forEach(link => {
     link.href = "index.html?demo=long";
   });
+  window.IncidentTheme.apply(window.IncidentTheme.getStored());
   showPanel(previewMode);
 } else {
+  loadAppearance();
   loadLogin();
 }

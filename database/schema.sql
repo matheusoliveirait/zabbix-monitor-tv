@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS settings (
   api_limit INT UNSIGNED NOT NULL DEFAULT 500,
   page_interval_seconds INT UNSIGNED NOT NULL DEFAULT 15,
   sort_mode VARCHAR(32) NOT NULL DEFAULT 'recent',
+  dashboard_theme VARCHAR(32) NOT NULL DEFAULT 'graphite',
   page_transition VARCHAR(32) NOT NULL DEFAULT 'fade',
   incident_font_scale TINYINT UNSIGNED NOT NULL DEFAULT 100,
   card_font_scale TINYINT UNSIGNED NOT NULL DEFAULT 100,

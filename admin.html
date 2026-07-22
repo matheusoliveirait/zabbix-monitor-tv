@@ -1,18 +1,19 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="graphite">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Central de Incidentes - Configurações</title>
-  <link rel="icon" href="assets/favicon.svg?v=5" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="assets/favicon.svg?v=6" type="image/svg+xml" />
+  <script src="theme.js?v=1"></script>
+  <link rel="stylesheet" href="styles.css?v=3" />
 </head>
 <body class="admin-page">
   <div class="admin-layout">
     <aside class="admin-sidebar">
       <a class="admin-brand" href="index.html" data-home-link aria-label="Ir para o painel">
         <span class="admin-brand-mark" aria-hidden="true">
-          <img src="assets/logo-mark.svg?v=5" alt="" />
+          <img src="assets/logo-mark.svg?v=6" data-theme-logo alt="" />
         </span>
         <div>
           <strong>Central de Incidentes</strong>
@@ -144,6 +145,48 @@
 
           <div class="admin-setting-group">
             <div class="admin-setting-intro">
+              <h3>Aparência</h3>
+              <p>A escolha acompanha o dashboard, as configurações e a tela de acesso.</p>
+            </div>
+            <fieldset class="admin-setting-fields admin-theme-field">
+              <legend>Tema da interface</legend>
+              <div class="admin-theme-grid">
+                <label class="admin-theme-choice">
+                  <input name="dashboard_theme" type="radio" value="graphite" />
+                  <span class="admin-theme-preview theme-preview-graphite" aria-hidden="true">
+                    <i class="theme-preview-header"></i>
+                    <i class="theme-preview-cards"></i>
+                    <i class="theme-preview-row"></i>
+                    <i class="theme-preview-row"></i>
+                  </span>
+                  <span><strong>Chumbo</strong><small>Padrão do projeto, escuro e discreto</small></span>
+                </label>
+                <label class="admin-theme-choice">
+                  <input name="dashboard_theme" type="radio" value="light" />
+                  <span class="admin-theme-preview theme-preview-light" aria-hidden="true">
+                    <i class="theme-preview-header"></i>
+                    <i class="theme-preview-cards"></i>
+                    <i class="theme-preview-row"></i>
+                    <i class="theme-preview-row"></i>
+                  </span>
+                  <span><strong>Claro</strong><small>Branco e cinza com leitura nítida</small></span>
+                </label>
+                <label class="admin-theme-choice">
+                  <input name="dashboard_theme" type="radio" value="blue" />
+                  <span class="admin-theme-preview theme-preview-blue" aria-hidden="true">
+                    <i class="theme-preview-header"></i>
+                    <i class="theme-preview-cards"></i>
+                    <i class="theme-preview-row"></i>
+                    <i class="theme-preview-row"></i>
+                  </span>
+                  <span><strong>Azul</strong><small>Visual profundo da versão anterior</small></span>
+                </label>
+              </div>
+            </fieldset>
+          </div>
+
+          <div class="admin-setting-group">
+            <div class="admin-setting-intro">
               <h3>Atualização e paginação</h3>
               <p>Tempos curtos deixam o painel mais dinâmico, mas aumentam o número de consultas.</p>
             </div>
@@ -245,6 +288,6 @@
     </main>
   </div>
 
-  <script src="admin.js?v=2"></script>
+  <script src="admin.js?v=4"></script>
 </body>
 </html>

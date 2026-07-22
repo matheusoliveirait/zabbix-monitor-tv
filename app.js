@@ -3,6 +3,7 @@
       PAGE_SIZE: 6,
       PAGE_INTERVAL_SECONDS: 15,
       SORT_MODE: "recent",
+      DASHBOARD_THEME: "graphite",
       PAGE_TRANSITION: "fade",
       INCIDENT_FONT_SCALE: 100,
       CARD_FONT_SCALE: 100,
@@ -137,8 +138,10 @@
     function applyPanelCustomization() {
       const incidentScale = clampNumber(state.config.INCIDENT_FONT_SCALE, 85, 200, 100) / 100;
       const cardScale = clampNumber(state.config.CARD_FONT_SCALE, 85, 200, 100) / 100;
+      const theme = window.IncidentTheme.normalize(state.config.DASHBOARD_THEME);
       const rootStyle = document.documentElement.style;
 
+      state.config.DASHBOARD_THEME = window.IncidentTheme.apply(theme);
       rootStyle.setProperty("--incident-primary-size", `clamp(${18 * incidentScale}px, ${1.35 * incidentScale}vw, ${24 * incidentScale}px)`);
       rootStyle.setProperty("--incident-secondary-size", `clamp(${12 * incidentScale}px, ${0.95 * incidentScale}vw, ${17 * incidentScale}px)`);
       rootStyle.setProperty("--incident-meta-size", `clamp(${16 * incidentScale}px, ${1.15 * incidentScale}vw, ${20 * incidentScale}px)`);
@@ -166,6 +169,7 @@
           REFRESH_SECONDS: saved.refresh_seconds ?? state.config.REFRESH_SECONDS,
           PAGE_INTERVAL_SECONDS: saved.page_interval_seconds ?? state.config.PAGE_INTERVAL_SECONDS,
           SORT_MODE: saved.sort_mode || state.config.SORT_MODE,
+          DASHBOARD_THEME: saved.dashboard_theme || state.config.DASHBOARD_THEME,
           PAGE_TRANSITION: saved.page_transition || state.config.PAGE_TRANSITION,
           INCIDENT_FONT_SCALE: saved.incident_font_scale ?? state.config.INCIDENT_FONT_SCALE,
           CARD_FONT_SCALE: saved.card_font_scale ?? state.config.CARD_FONT_SCALE,

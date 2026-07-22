@@ -50,6 +50,7 @@ try {
                 'api_limit' => (int)$settings['api_limit'],
                 'page_interval_seconds' => (int)$settings['page_interval_seconds'],
                 'sort_mode' => $settings['sort_mode'],
+                'dashboard_theme' => normalize_dashboard_theme($settings['dashboard_theme'] ?? null),
                 'page_transition' => $settings['page_transition'] ?? 'fade',
                 'incident_font_scale' => (int)($settings['incident_font_scale'] ?? 100),
                 'card_font_scale' => (int)($settings['card_font_scale'] ?? 100),
@@ -102,6 +103,7 @@ try {
         $fetchMode = in_array(($input['fetch_mode'] ?? 'incidents'), ['incidents', 'problems'], true)
             ? (string)$input['fetch_mode']
             : 'incidents';
+        $dashboardTheme = normalize_dashboard_theme($input['dashboard_theme'] ?? null);
         $pageTransition = in_array(($input['page_transition'] ?? 'fade'), ['none', 'fade', 'slide', 'zoom'], true)
             ? (string)$input['page_transition']
             : 'fade';
@@ -126,6 +128,7 @@ try {
                  api_limit = ?,
                  page_interval_seconds = ?,
                  sort_mode = ?,
+                 dashboard_theme = ?,
                  page_transition = ?,
                  incident_font_scale = ?,
                  card_font_scale = ?,
@@ -141,6 +144,7 @@ try {
             clamp_int($input['api_limit'] ?? 500, 20, 5000, 500),
             clamp_int($input['page_interval_seconds'] ?? 15, 5, 120, 15),
             $sortMode,
+            $dashboardTheme,
             $pageTransition,
             clamp_int($input['incident_font_scale'] ?? 100, 85, 200, 100),
             clamp_int($input['card_font_scale'] ?? 100, 85, 200, 100),
