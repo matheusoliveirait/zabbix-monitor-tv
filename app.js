@@ -24,6 +24,7 @@
       pageTimer: null,
       currentPage: 0,
       sortModeOverride: null,
+      severityFilter: null,
       pageTransitioning: false,
       fontEditor: {
         open: false,
@@ -81,6 +82,7 @@
       panelSubtitle: document.getElementById("panelSubtitle"),
       statusPill: document.getElementById("statusPill"),
       problemList: document.getElementById("problemList"),
+      severityFilterCards: document.querySelectorAll("[data-severity-filter]"),
       sortButtons: document.querySelectorAll("[data-sort-mode]"),
       footerStatus: document.getElementById("footerStatus")
     };
@@ -309,20 +311,30 @@
       if (state.error && !state.lastRefreshAt) {
         renderSummary([]);
         renderError(state.error);
+        updateSeverityFilterCards();
         return;
       }
 
-      renderSummary(state.problems);
-      renderList(state.problems);
+      const filteredProblems = getFilteredProblems();
+      renderSummary(state.problems, filteredProblems);
+      renderList(filteredProblems);
+      updateSeverityFilterCards();
       updateSortButtons();
       renderFooter();
     }
 
-    function renderSummary(problems) {
+    function getFilteredProblems() {
+      if (state.severityFilter === null) return state.problems;
+      return state.problems.filter(problem => problem.severity === state.severityFilter);
+    }
+
+    function renderSummary(problems, listedProblems = problems) {
       const activeProblems = problems.filter(problem => problem.status !== "RESOLVIDO");
-      const resolvedCount = problems.length - activeProblems.length;
+      const listedActiveProblems = listedProblems.filter(problem => problem.status !== "RESOLVIDO");
+      const resolvedCount = listedProblems.length - listedActiveProblems.length;
       const counts = countBySeverity(activeProblems);
       const total = activeProblems.length;
+      const listedTotal = listedActiveProblems.length;
       const oldest = [...activeProblems].sort((a, b) => a.clock - b.clock)[0];
 
       elements.totalProblems.textContent = total;
@@ -344,16 +356,19 @@
         ? "Sync falhou"
         : total > 0 ? "Em alerta" : "Operacional";
       const sortLabel = sortModeLabel[state.config.SORT_MODE] || sortModeLabel.severity;
-      const pagination = getPaginationState(problems.length);
-      elements.pageTitle.textContent = problems.length > 0
+      const pagination = getPaginationState(listedProblems.length);
+      elements.pageTitle.textContent = listedProblems.length > 0
         ? `- Página ${pagination.currentPage + 1}/${pagination.totalPages}`
         : "";
+      const filterLabel = state.severityFilter === null
+        ? ""
+        : ` - filtro: ${severityMap[state.severityFilter]}`;
       const listSummary = resolvedCount > 0
-        ? `${total} ativo(s) - ${resolvedCount} resolvido(s)`
-        : `${total} ativo(s)`;
+        ? `${listedTotal} ativo(s) - ${resolvedCount} resolvido(s)`
+        : `${listedTotal} ativo(s)`;
       elements.panelSubtitle.textContent = state.error && state.lastRefreshAt
-        ? `Últimos dados válidos - ${listSummary} - ordenação: ${sortLabel}`
-        : `${listSummary} - ordenação: ${sortLabel}`;
+        ? `Últimos dados válidos - ${listSummary}${filterLabel} - ordenação: ${sortLabel}`
+        : `${listSummary}${filterLabel} - ordenação: ${sortLabel}`;
     }
 
     function setCardNote(element, count) {
@@ -364,11 +379,12 @@
       if (problems.length === 0) {
         state.currentPage = 0;
         elements.problemList.classList.remove("compact");
+        const filteredSeverity = state.severityFilter === null ? "" : severityMap[state.severityFilter];
         elements.problemList.innerHTML = `
           <div class="empty">
             <div>
-              <div class="empty-title">Tudo operacional</div>
-              <div class="empty-sub">Nenhum incidente ativo no momento.</div>
+              <div class="empty-title">${filteredSeverity ? `Nenhum incidente de ${filteredSeverity}` : "Tudo operacional"}</div>
+              <div class="empty-sub">${filteredSeverity ? "Não há eventos recentes nesta criticidade." : "Nenhum incidente ativo no momento."}</div>
             </div>
           </div>
         `;
@@ -426,6 +442,16 @@
         button.title = isActive
           ? `Ordenando por ${sortModeLabel[state.config.SORT_MODE]}`
           : `Ordenar por ${sortModeLabel[button.dataset.sortMode] || button.textContent}`;
+      });
+    }
+
+    function updateSeverityFilterCards() {
+      elements.severityFilterCards.forEach(card => {
+        const filter = card.dataset.severityFilter;
+        const isSelected = filter === "all"
+          ? state.severityFilter === null
+          : Number(filter) === state.severityFilter;
+        card.setAttribute("aria-pressed", String(isSelected));
       });
     }
 
@@ -874,7 +900,7 @@
       );
 
       state.pageTimer = setInterval(() => {
-        const pagination = getPaginationState(state.problems.length);
+        const pagination = getPaginationState(getFilteredProblems().length);
         if (pagination.totalPages <= 1 || document.hidden || state.pageTransitioning) return;
 
         transitionToPage((state.currentPage + 1) % pagination.totalPages);
@@ -946,6 +972,15 @@
     });
     elements.settingsButton.addEventListener("click", openSettings);
     elements.fullscreenButton.addEventListener("click", toggleFullscreen);
+    elements.severityFilterCards.forEach(card => {
+      card.addEventListener("click", () => {
+        const filter = card.dataset.severityFilter;
+        const severity = filter === "all" ? null : Number(filter);
+        state.severityFilter = severity === state.severityFilter ? null : severity;
+        state.currentPage = 0;
+        render();
+      });
+    });
     elements.sortButtons.forEach(button => {
       button.addEventListener("click", () => {
         const sortMode = button.dataset.sortMode;

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Central de Incidentes - Monitoramento Zabbix</title>
   <link rel="icon" href="assets/favicon.svg?v=5" type="image/svg+xml" />
-  <link rel="stylesheet" href="dashboard.css?v=7" />
+  <link rel="stylesheet" href="dashboard.css?v=9" />
 </head>
 <body>
   <div class="tv">
@@ -94,35 +94,35 @@
     </header>
 
     <section class="summary" aria-label="Resumo operacional">
-      <article class="card total-card" id="totalCard">
+      <button class="card total-card" id="totalCard" type="button" data-severity-filter="all" aria-label="Mostrar todos os incidentes" aria-pressed="true">
         <div class="card-label">Incidentes ativos</div>
         <div class="card-number" id="totalProblems">0</div>
         <div class="card-note" id="totalNote">Aguardando dados</div>
-      </article>
+      </button>
 
-      <article class="card" data-severity="5">
+      <button class="card" type="button" data-severity="5" data-severity-filter="5" aria-label="Filtrar por criticidade Desastre" aria-pressed="false">
         <div class="card-label">Desastre</div>
         <div class="card-number" id="countDisaster">0</div>
         <div class="card-note" id="noteDisaster">Sem incidente</div>
-      </article>
+      </button>
 
-      <article class="card" data-severity="4">
+      <button class="card" type="button" data-severity="4" data-severity-filter="4" aria-label="Filtrar por criticidade Alta" aria-pressed="false">
         <div class="card-label">Alta</div>
         <div class="card-number" id="countHigh">0</div>
         <div class="card-note" id="noteHigh">Sem incidente</div>
-      </article>
+      </button>
 
-      <article class="card" data-severity="3">
+      <button class="card" type="button" data-severity="3" data-severity-filter="3" aria-label="Filtrar por criticidade Média" aria-pressed="false">
         <div class="card-label">Média</div>
         <div class="card-number" id="countAverage">0</div>
         <div class="card-note" id="noteAverage">Sem incidente</div>
-      </article>
+      </button>
 
-      <article class="card" data-severity="2">
+      <button class="card" type="button" data-severity="2" data-severity-filter="2" aria-label="Filtrar por criticidade Atenção" aria-pressed="false">
         <div class="card-label">Atenção</div>
         <div class="card-number" id="countWarning">0</div>
         <div class="card-note" id="noteWarning">Sem incidente</div>
-      </article>
+      </button>
     </section>
 
     <main class="incidents">
@@ -151,6 +151,6 @@
     </footer>
   </div>
 
-  <script src="app.js?v=8"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>

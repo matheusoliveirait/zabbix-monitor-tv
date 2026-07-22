@@ -1124,12 +1124,19 @@ h1 {
 .card,
 .total-card,
 .total-card.alerting {
+  width: 100%;
   padding: 13px 16px;
   border: 0;
   border-left: 6px solid #22c55e;
   border-radius: 0;
+  color: inherit;
   background: #101a23;
   box-shadow: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+  transition: background-color 150ms ease, box-shadow 150ms ease, border-left-width 150ms ease;
 }
 
 .card + .card {
@@ -1142,6 +1149,11 @@ h1 {
 
 .total-card.alerting {
   border-left-color: #ef4444;
+}
+
+.total-card,
+.total-card.alerting {
+  border-left: 0;
 }
 
 .card[data-severity="5"] {
@@ -1158,6 +1170,25 @@ h1 {
 
 .card[data-severity="2"] {
   border-left-color: #eab308;
+}
+
+.card:hover {
+  background: #14222d;
+}
+
+.card:focus-visible {
+  outline: 2px solid #6b8394;
+  outline-offset: -2px;
+}
+
+.card[aria-pressed="true"] {
+  border-left-width: 10px;
+  background: #172630;
+  box-shadow: inset 0 0 0 1px #465c6b;
+}
+
+.card[aria-pressed="true"] .card-label {
+  color: #f4f7f9;
 }
 
 .card-label {
