@@ -6,7 +6,7 @@
   <title>Central de Incidentes - Configurações</title>
   <link rel="icon" href="assets/favicon.svg?v=6" type="image/svg+xml" />
   <script src="theme.js?v=1"></script>
-  <link rel="stylesheet" href="styles.css?v=3" />
+  <link rel="stylesheet" href="styles.css?v=4" />
 </head>
 <body class="admin-page">
   <div class="admin-layout">
@@ -187,6 +187,59 @@
 
           <div class="admin-setting-group">
             <div class="admin-setting-intro">
+              <h3>Cores das criticidades</h3>
+              <p>Personalize os cards e as badges da tabela. O contraste do texto é ajustado automaticamente.</p>
+            </div>
+            <fieldset class="admin-setting-fields admin-severity-field">
+              <legend>Paleta do painel</legend>
+              <div class="admin-color-grid">
+                <div class="admin-color-control" data-severity-color="5">
+                  <div class="admin-color-heading">
+                    <span class="admin-severity-sample" data-color-sample>Desastre</span>
+                    <small>Criticidade máxima</small>
+                  </div>
+                  <div class="admin-color-inputs">
+                    <input class="admin-color-picker" id="severityColorPicker5" type="color" value="#ef4444" data-color-picker aria-label="Selecionar cor de Desastre" />
+                    <input class="admin-color-hex" name="severity_color_5" id="severityColor5" type="text" value="#EF4444" maxlength="7" pattern="^#[0-9A-Fa-f]{6}$" autocomplete="off" spellcheck="false" data-color-hex aria-label="Cor hexadecimal de Desastre" required />
+                  </div>
+                </div>
+                <div class="admin-color-control" data-severity-color="4">
+                  <div class="admin-color-heading">
+                    <span class="admin-severity-sample" data-color-sample>Alta</span>
+                    <small>Ação imediata</small>
+                  </div>
+                  <div class="admin-color-inputs">
+                    <input class="admin-color-picker" id="severityColorPicker4" type="color" value="#f97316" data-color-picker aria-label="Selecionar cor de Alta" />
+                    <input class="admin-color-hex" name="severity_color_4" id="severityColor4" type="text" value="#F97316" maxlength="7" pattern="^#[0-9A-Fa-f]{6}$" autocomplete="off" spellcheck="false" data-color-hex aria-label="Cor hexadecimal de Alta" required />
+                  </div>
+                </div>
+                <div class="admin-color-control" data-severity-color="3">
+                  <div class="admin-color-heading">
+                    <span class="admin-severity-sample" data-color-sample>Média</span>
+                    <small>Impacto relevante</small>
+                  </div>
+                  <div class="admin-color-inputs">
+                    <input class="admin-color-picker" id="severityColorPicker3" type="color" value="#f59e0b" data-color-picker aria-label="Selecionar cor de Média" />
+                    <input class="admin-color-hex" name="severity_color_3" id="severityColor3" type="text" value="#F59E0B" maxlength="7" pattern="^#[0-9A-Fa-f]{6}$" autocomplete="off" spellcheck="false" data-color-hex aria-label="Cor hexadecimal de Média" required />
+                  </div>
+                </div>
+                <div class="admin-color-control" data-severity-color="2">
+                  <div class="admin-color-heading">
+                    <span class="admin-severity-sample" data-color-sample>Atenção</span>
+                    <small>Requer acompanhamento</small>
+                  </div>
+                  <div class="admin-color-inputs">
+                    <input class="admin-color-picker" id="severityColorPicker2" type="color" value="#eab308" data-color-picker aria-label="Selecionar cor de Atenção" />
+                    <input class="admin-color-hex" name="severity_color_2" id="severityColor2" type="text" value="#EAB308" maxlength="7" pattern="^#[0-9A-Fa-f]{6}$" autocomplete="off" spellcheck="false" data-color-hex aria-label="Cor hexadecimal de Atenção" required />
+                  </div>
+                </div>
+              </div>
+              <button class="action admin-color-reset" id="resetSeverityColorsButton" type="button">Restaurar paleta padrão</button>
+            </fieldset>
+          </div>
+
+          <div class="admin-setting-group">
+            <div class="admin-setting-intro">
               <h3>Atualização e paginação</h3>
               <p>Tempos curtos deixam o painel mais dinâmico, mas aumentam o número de consultas.</p>
             </div>
@@ -288,6 +341,6 @@
     </main>
   </div>
 
-  <script src="admin.js?v=4"></script>
+  <script src="admin.js?v=5"></script>
 </body>
 </html>

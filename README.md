@@ -20,6 +20,7 @@ O projeto consulta a API oficial do Zabbix, protege o token no backend e apresen
 - Paginacao automatica de seis incidentes com intervalo configuravel.
 - Transicoes de pagina configuraveis: sem efeito, fade, deslizar ou zoom suave.
 - Temas Chumbo, Claro e Azul selecionaveis nas configuracoes, com Chumbo como padrao.
+- Cores de criticidade personalizaveis com contraste automatico e restauracao da paleta padrao.
 - Escala independente das fontes dos cards e da lista de incidentes, de 85% a 200% em passos de 5%.
 - Ajuste rapido de fontes no proprio painel, com previa antes de aplicar.
 - Destaques discretos para incidentes novos e resolvidos recentemente.

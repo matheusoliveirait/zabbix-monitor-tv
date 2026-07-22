@@ -253,6 +253,10 @@ function ensure_settings_schema(): void
         'page_transition' => "VARCHAR(32) NOT NULL DEFAULT 'fade'",
         'incident_font_scale' => 'TINYINT UNSIGNED NOT NULL DEFAULT 100',
         'card_font_scale' => 'TINYINT UNSIGNED NOT NULL DEFAULT 100',
+        'severity_disaster_color' => "CHAR(7) NOT NULL DEFAULT '#ef4444'",
+        'severity_high_color' => "CHAR(7) NOT NULL DEFAULT '#f97316'",
+        'severity_average_color' => "CHAR(7) NOT NULL DEFAULT '#f59e0b'",
+        'severity_warning_color' => "CHAR(7) NOT NULL DEFAULT '#eab308'",
     ];
 
     foreach ($missingColumns as $name => $definition) {
@@ -292,6 +296,33 @@ function normalize_dashboard_theme(mixed $theme): string
     return in_array($theme, ['graphite', 'light', 'blue'], true) ? $theme : 'graphite';
 }
 
+function normalize_hex_color(mixed $color, string $fallback): string
+{
+    $color = strtolower(trim((string)$color));
+    return preg_match('/^#[0-9a-f]{6}$/', $color) === 1 ? $color : $fallback;
+}
+
+function severity_colors_from_settings(array $settings): array
+{
+    return [
+        5 => normalize_hex_color($settings['severity_disaster_color'] ?? null, '#ef4444'),
+        4 => normalize_hex_color($settings['severity_high_color'] ?? null, '#f97316'),
+        3 => normalize_hex_color($settings['severity_average_color'] ?? null, '#f59e0b'),
+        2 => normalize_hex_color($settings['severity_warning_color'] ?? null, '#eab308'),
+    ];
+}
+
+function normalize_severity_colors(mixed $colors): array
+{
+    $colors = is_array($colors) ? $colors : [];
+    return [
+        5 => normalize_hex_color($colors[5] ?? null, '#ef4444'),
+        4 => normalize_hex_color($colors[4] ?? null, '#f97316'),
+        3 => normalize_hex_color($colors[3] ?? null, '#f59e0b'),
+        2 => normalize_hex_color($colors[2] ?? null, '#eab308'),
+    ];
+}
+
 function frontend_config_from_settings(array $settings): array
 {
     return [
@@ -302,6 +333,7 @@ function frontend_config_from_settings(array $settings): array
         'PAGE_TRANSITION' => $settings['page_transition'] ?? 'fade',
         'INCIDENT_FONT_SCALE' => (int)($settings['incident_font_scale'] ?? 100),
         'CARD_FONT_SCALE' => (int)($settings['card_font_scale'] ?? 100),
+        'SEVERITY_COLORS' => severity_colors_from_settings($settings),
     ];
 }
 

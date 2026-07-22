@@ -15,10 +15,13 @@
       --ok: #22c55e;
       --info: #38bdf8;
       --disaster: #ef4444;
+      --disaster-text: #ffffff;
       --high: #f97316;
+      --high-text: #ffffff;
       --average: #f59e0b;
+      --average-text: #111827;
       --warning: #eab308;
-      --severity-dark-text: #111827;
+      --warning-text: #111827;
       --shadow: 0 22px 58px rgba(0, 0, 0, 0.42);
       --incident-primary-size: clamp(18px, 1.35vw, 24px);
       --incident-secondary-size: clamp(12px, 0.95vw, 17px);
@@ -1000,23 +1003,23 @@ html[data-theme="light"] .error-title {
     }
 
     .severity-badge.sev-5 {
+      color: var(--disaster-text);
       background: var(--disaster);
     }
 
     .severity-badge.sev-4 {
+      color: var(--high-text);
       background: var(--high);
     }
 
     .severity-badge.sev-3 {
-      color: var(--severity-dark-text);
+      color: var(--average-text);
       background: var(--average);
-      border-color: rgba(245, 158, 11, 0.84);
     }
 
     .severity-badge.sev-2 {
-      color: var(--severity-dark-text);
+      color: var(--warning-text);
       background: var(--warning);
-      border-color: rgba(234, 179, 8, 0.84);
     }
 
     .entity,
@@ -1423,19 +1426,19 @@ h1 {
 }
 
 .card[data-severity="5"] {
-  border-left-color: #ef4444;
+  border-left-color: var(--disaster);
 }
 
 .card[data-severity="4"] {
-  border-left-color: #f97316;
+  border-left-color: var(--high);
 }
 
 .card[data-severity="3"] {
-  border-left-color: #f59e0b;
+  border-left-color: var(--average);
 }
 
 .card[data-severity="2"] {
-  border-left-color: #eab308;
+  border-left-color: var(--warning);
 }
 
 .card:hover {

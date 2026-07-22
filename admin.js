@@ -21,6 +21,8 @@ const saveHint = document.getElementById("saveHint");
 const saveSettingsButton = document.getElementById("saveSettingsButton");
 const discardChangesButton = document.getElementById("discardChangesButton");
 const resetCustomizationButton = document.getElementById("resetCustomizationButton");
+const resetSeverityColorsButton = document.getElementById("resetSeverityColorsButton");
+const severityColorControls = Array.from(document.querySelectorAll("[data-severity-color]"));
 const incidentFontScale = document.getElementById("incidentFontScale");
 const incidentFontScaleValue = document.getElementById("incidentFontScaleValue");
 const cardFontScale = document.getElementById("cardFontScale");
@@ -31,6 +33,7 @@ const adminLayout = document.querySelector(".admin-layout");
 const DEFAULT_API_PATH = "/zabbix/api_jsonrpc.php";
 const TOKEN_MASK = "TOKEN_ARMAZENADO";
 const PREVIEW_STORAGE_KEY = "central-incidentes-preview-settings-v1";
+const DEFAULT_SEVERITY_COLORS = window.IncidentTheme.DEFAULT_SEVERITY_COLORS;
 const DEFAULT_CUSTOMIZATION = {
   dashboard_theme: "graphite",
   refresh_seconds: 10,
@@ -89,6 +92,7 @@ const PREVIEW_DEFAULT_SETTINGS = {
   page_transition: "fade",
   incident_font_scale: 100,
   card_font_scale: 100,
+  severity_colors: DEFAULT_SEVERITY_COLORS,
   fetch_mode: "incidents",
   monitored_group_ids: [],
   monitored_host_ids: [],
@@ -131,6 +135,39 @@ function clearMessage() {
 function updateScaleOutputs() {
   incidentFontScaleValue.textContent = `${incidentFontScale.value}%`;
   cardFontScaleValue.textContent = `${cardFontScale.value}%`;
+}
+
+function updateSeverityPreview(control, color) {
+  const sample = control.querySelector("[data-color-sample]");
+  sample.style.setProperty("--sample-color", color);
+  sample.style.setProperty("--sample-text", window.IncidentTheme.contrastColor(color));
+}
+
+function setSeverityColorControl(control, value) {
+  const severity = control.dataset.severityColor;
+  const color = window.IncidentTheme.normalizeHexColor(value, DEFAULT_SEVERITY_COLORS[severity]);
+  const picker = control.querySelector("[data-color-picker]");
+  const hexInput = control.querySelector("[data-color-hex]");
+
+  picker.value = color;
+  hexInput.value = color.toUpperCase();
+  hexInput.setCustomValidity("");
+  updateSeverityPreview(control, color);
+}
+
+function setSeverityColors(colors) {
+  const normalized = window.IncidentTheme.normalizeSeverityColors(colors);
+  severityColorControls.forEach(control => {
+    setSeverityColorControl(control, normalized[control.dataset.severityColor]);
+  });
+}
+
+function readSeverityColors() {
+  const colors = Object.fromEntries(severityColorControls.map(control => [
+    control.dataset.severityColor,
+    control.querySelector("[data-color-hex]").value,
+  ]));
+  return window.IncidentTheme.normalizeSeverityColors(colors);
 }
 
 function formSnapshot() {
@@ -346,6 +383,7 @@ function populateSettings(settings) {
   formField("page_transition").value = settings.page_transition || "fade";
   formField("incident_font_scale").value = settings.incident_font_scale || 100;
   formField("card_font_scale").value = settings.card_font_scale || 100;
+  setSeverityColors(settings.severity_colors || DEFAULT_SEVERITY_COLORS);
   formField("fetch_mode").value = settings.fetch_mode || "incidents";
   formField("monitored_group_ids").value = idsToText(settings.monitored_group_ids);
   formField("monitored_host_ids").value = idsToText(settings.monitored_host_ids);
@@ -397,6 +435,10 @@ settingsForm.addEventListener("submit", event => {
     const payload = Object.fromEntries(new FormData(settingsForm).entries());
     payload.monitored_group_ids = textToIds(payload.monitored_group_ids);
     payload.monitored_host_ids = textToIds(payload.monitored_host_ids);
+    payload.severity_colors = readSeverityColors();
+    Object.keys(DEFAULT_SEVERITY_COLORS).forEach(severity => {
+      delete payload[`severity_color_${severity}`];
+    });
 
     if (hasStoredToken && !editingStoredToken) {
       delete payload.zabbix_token;
@@ -495,6 +537,34 @@ tokenInput.addEventListener("input", () => {
   );
 });
 
+severityColorControls.forEach(control => {
+  const picker = control.querySelector("[data-color-picker]");
+  const hexInput = control.querySelector("[data-color-hex]");
+
+  picker.addEventListener("input", () => {
+    setSeverityColorControl(control, picker.value);
+  });
+
+  hexInput.addEventListener("input", () => {
+    const value = hexInput.value.trim().toUpperCase();
+    hexInput.value = value;
+    const isValid = /^#[0-9A-F]{6}$/.test(value);
+    hexInput.setCustomValidity(isValid ? "" : "Use uma cor no formato #RRGGBB.");
+    if (isValid) {
+      picker.value = value.toLowerCase();
+      updateSeverityPreview(control, value);
+    }
+  });
+
+  hexInput.addEventListener("change", () => {
+    const value = hexInput.value.trim();
+    const candidate = /^[0-9A-Fa-f]{6}$/.test(value) ? `#${value}` : value;
+    if (/^#[0-9A-Fa-f]{6}$/.test(candidate)) {
+      setSeverityColorControl(control, candidate);
+    }
+  });
+});
+
 settingsForm.addEventListener("input", event => {
   if (event.target === incidentFontScale || event.target === cardFontScale) {
     updateScaleOutputs();
@@ -515,10 +585,21 @@ resetCustomizationButton.addEventListener("click", () => {
   Object.entries(DEFAULT_CUSTOMIZATION).forEach(([name, value]) => {
     formField(name).value = value;
   });
+  setSeverityColors(DEFAULT_SEVERITY_COLORS);
   updateScaleOutputs();
   const isDirty = updateDirtyState();
   showMessage(
     isDirty ? "Padrões de personalização aplicados. Salve para confirmar." : "A personalização já está no padrão.",
+    isDirty ? "warning" : "info",
+  );
+});
+
+resetSeverityColorsButton.addEventListener("click", () => {
+  clearMessage();
+  setSeverityColors(DEFAULT_SEVERITY_COLORS);
+  const isDirty = updateDirtyState();
+  showMessage(
+    isDirty ? "Paleta padrão aplicada. Salve para confirmar." : "As cores já estão no padrão.",
     isDirty ? "warning" : "info",
   );
 });

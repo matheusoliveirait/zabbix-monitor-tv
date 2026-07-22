@@ -54,6 +54,7 @@ try {
                 'page_transition' => $settings['page_transition'] ?? 'fade',
                 'incident_font_scale' => (int)($settings['incident_font_scale'] ?? 100),
                 'card_font_scale' => (int)($settings['card_font_scale'] ?? 100),
+                'severity_colors' => severity_colors_from_settings($settings),
                 'fetch_mode' => $settings['fetch_mode'],
                 'monitored_group_ids' => decode_ids($settings['monitored_group_ids'] ?? ''),
                 'monitored_host_ids' => decode_ids($settings['monitored_host_ids'] ?? ''),
@@ -107,6 +108,10 @@ try {
         $pageTransition = in_array(($input['page_transition'] ?? 'fade'), ['none', 'fade', 'slide', 'zoom'], true)
             ? (string)$input['page_transition']
             : 'fade';
+        $submittedSeverityColors = is_array($input['severity_colors'] ?? null)
+            ? $input['severity_colors']
+            : severity_colors_from_settings($current);
+        $severityColors = normalize_severity_colors($submittedSeverityColors);
 
         $tokenEncrypted = $current['zabbix_token_encrypted'];
         if (!empty($input['zabbix_token'])) {
@@ -132,6 +137,10 @@ try {
                  page_transition = ?,
                  incident_font_scale = ?,
                  card_font_scale = ?,
+                 severity_disaster_color = ?,
+                 severity_high_color = ?,
+                 severity_average_color = ?,
+                 severity_warning_color = ?,
                  fetch_mode = ?,
                  monitored_group_ids = ?,
                  monitored_host_ids = ?
@@ -148,6 +157,10 @@ try {
             $pageTransition,
             clamp_int($input['incident_font_scale'] ?? 100, 85, 200, 100),
             clamp_int($input['card_font_scale'] ?? 100, 85, 200, 100),
+            $severityColors[5],
+            $severityColors[4],
+            $severityColors[3],
+            $severityColors[2],
             $fetchMode,
             encode_ids($input['monitored_group_ids'] ?? []),
             encode_ids($input['monitored_host_ids'] ?? []),
