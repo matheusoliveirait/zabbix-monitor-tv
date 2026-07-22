@@ -222,7 +222,7 @@ try {
 
         $primaryHost = $hosts[0] ?? null;
         $host = $primaryHost ? ($hostMap[(string)($primaryHost['hostid'] ?? '')] ?? $primaryHost) : null;
-        $hostName = $host ? (string)($host['name'] ?? $host['host'] ?? 'Host nao identificado') : 'Host nao identificado';
+        $hostName = $host ? (string)($host['name'] ?? $host['host'] ?? 'Host não identificado') : 'Host não identificado';
         $hostGroups = $host ? ($host['hostgroups'] ?? $host['groups'] ?? []) : [];
         $rClock = (int)($problem['r_clock'] ?? 0);
 

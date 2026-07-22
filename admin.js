@@ -115,8 +115,8 @@ function updateDirtyState() {
   discardChangesButton.disabled = !isDirty;
   saveHint.dataset.state = isDirty ? "dirty" : "clean";
   saveHint.textContent = isDirty
-    ? "Alteracoes pendentes. Salve ou descarte antes de sair."
-    : "Nenhuma alteracao pendente.";
+    ? "Alterações pendentes. Salve ou descarte antes de sair."
+    : "Nenhuma alteração pendente.";
   return isDirty;
 }
 
@@ -376,7 +376,7 @@ settingsForm.addEventListener("submit", event => {
       };
       savePreviewSettings(previewSettings);
       populateSettings(previewSettings);
-      showMessage("Preferencias salvas neste navegador para o modo demonstracao.", "success");
+      showMessage("Preferências salvas neste navegador para o modo demonstração.", "success");
       return;
     }
 
@@ -437,7 +437,7 @@ tokenActionButton.addEventListener("click", () => {
     tokenInput.readOnly = false;
     tokenInput.value = "";
     tokenActionButton.textContent = "Manter token atual";
-    setTokenHint("Informe o novo token. Ele sera criptografado ao salvar.", "editing");
+    setTokenHint("Informe o novo token. Ele será criptografado ao salvar.", "editing");
     updateDirtyState();
     tokenInput.focus();
     return;
@@ -479,7 +479,7 @@ resetCustomizationButton.addEventListener("click", () => {
   updateScaleOutputs();
   const isDirty = updateDirtyState();
   showMessage(
-    isDirty ? "Padroes de personalizacao aplicados. Salve para confirmar." : "A personalizacao ja esta no padrao.",
+    isDirty ? "Padrões de personalização aplicados. Salve para confirmar." : "A personalização já está no padrão.",
     isDirty ? "warning" : "info",
   );
 });
@@ -494,7 +494,7 @@ const initialTab = window.location.hash === "#personalizacao" ? "customization" 
 setAdminTab(initialTab, false);
 
 if (previewMode) {
-  sessionText.textContent = "Modo demonstracao - preferencias locais";
+  sessionText.textContent = "Modo demonstração - preferências locais";
   backToPanelLink.href = "index.html?demo=long";
   homeLinks.forEach(link => {
     link.href = "index.html?demo=long";

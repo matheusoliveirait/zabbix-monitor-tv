@@ -35,8 +35,8 @@
     };
 
     const severityMap = {
-      2: "Atencao",
-      3: "Media",
+      2: "Atenção",
+      3: "Média",
       4: "Alta",
       5: "Desastre"
     };
@@ -44,7 +44,7 @@
     const sortModeLabel = {
       recent: "Mais recentes",
       severity: "Criticidade",
-      duration: "Duracao",
+      duration: "Duração",
       client: "Cliente",
       problem: "Problema"
     };
@@ -242,8 +242,8 @@
         severity: Number(problem.severity),
         clock: Number(problem.clock),
         rClock: Number(problem.rClock) || 0,
-        clientName: problem.clientName || "Cliente nao identificado",
-        hostName: problem.hostName || "Host nao identificado",
+        clientName: problem.clientName || "Cliente não identificado",
+        hostName: problem.hostName || "Host não identificado",
         name: problem.name || "Problema sem nome",
         opdata: problem.opdata || "",
         status: problem.status || "INCIDENTE"
@@ -331,7 +331,7 @@
       elements.countAverage.textContent = counts[3];
       elements.countWarning.textContent = counts[2];
       elements.totalCard.classList.toggle("alerting", total > 0);
-      elements.totalNote.textContent = oldest ? `Maior duracao: ${formatDuration(oldest.clock, oldest.rClock)}` : "Ambiente operacional";
+      elements.totalNote.textContent = oldest ? `Maior duração: ${formatDuration(oldest.clock, oldest.rClock)}` : "Ambiente operacional";
 
       setCardNote(elements.noteDisaster, counts[5]);
       setCardNote(elements.noteHigh, counts[4]);
@@ -346,14 +346,14 @@
       const sortLabel = sortModeLabel[state.config.SORT_MODE] || sortModeLabel.severity;
       const pagination = getPaginationState(problems.length);
       elements.pageTitle.textContent = problems.length > 0
-        ? `- Pagina ${pagination.currentPage + 1}/${pagination.totalPages}`
+        ? `- Página ${pagination.currentPage + 1}/${pagination.totalPages}`
         : "";
       const listSummary = resolvedCount > 0
         ? `${total} ativo(s) - ${resolvedCount} resolvido(s)`
         : `${total} ativo(s)`;
       elements.panelSubtitle.textContent = state.error && state.lastRefreshAt
-        ? `Ultimos dados bons - ${listSummary} - ordenacao: ${sortLabel}`
-        : `${listSummary} - ordenacao: ${sortLabel}`;
+        ? `Últimos dados válidos - ${listSummary} - ordenação: ${sortLabel}`
+        : `${listSummary} - ordenação: ${sortLabel}`;
     }
 
     function setCardNote(element, count) {
@@ -457,7 +457,7 @@
       elements.statusPill.classList.remove("warning");
       elements.pageTitle.textContent = "";
       elements.panelSubtitle.textContent = "Falha ao consultar API";
-      elements.footerStatus.textContent = "Erro na atualizacao";
+      elements.footerStatus.textContent = "Erro na atualização";
       elements.problemList.innerHTML = `
         <div class="error">
           <div>
@@ -475,7 +475,7 @@
       elements.statusPill.classList.remove("alerting", "warning");
       elements.pageTitle.textContent = "";
       elements.panelSubtitle.textContent = "Configure URL e token da API";
-      elements.footerStatus.textContent = "Aguardando configuracao da API";
+      elements.footerStatus.textContent = "Aguardando configuração da API";
       elements.problemList.innerHTML = `
         <div class="setup">
           <div>
@@ -497,7 +497,7 @@
           rClock: now - 5,
           hostName: "Filial Norte - Gateway",
           clientName: "Filial Norte",
-          name: "Gateway principal indisponivel.",
+          name: "Gateway principal indisponível.",
           opdata: "Recuperado recentemente",
           status: "RESOLVIDO"
         },
@@ -509,7 +509,7 @@
           hostName: "Matriz - Access Point 01",
           clientName: "Matriz",
           name: "Interface sem fio: alta taxa de erros por 5 minutos",
-          opdata: "Interface com degradacao",
+          opdata: "Interface com degradação",
           status: "INCIDENTE"
         },
         {
@@ -519,8 +519,8 @@
           rClock: 0,
           hostName: "Datacenter - Storage 01",
           clientName: "Datacenter",
-          name: "Storage 01 indisponivel por ICMP ping",
-          opdata: "Host indisponivel",
+          name: "Storage 01 indisponível por ICMP ping",
+          opdata: "Host indisponível",
           status: "INCIDENTE"
         },
         {
@@ -530,7 +530,7 @@
           rClock: 0,
           hostName: "Datacenter - Storage 01",
           clientName: "Datacenter",
-          name: "Pool de dados nao esta online",
+          name: "Pool de dados não está online",
           opdata: "Storage pool offline",
           status: "INCIDENTE"
         }
@@ -546,10 +546,10 @@
             severity,
             clock: now - (7200 + index * 1880),
             rClock: 0,
-            hostName: `Servidor demonstracao ${String(index + 1).padStart(2, "0")}`,
+            hostName: `Servidor demonstração ${String(index + 1).padStart(2, "0")}`,
             clientName: index % 2 === 0 ? "Cliente Alfa" : "Cliente Beta",
-            name: `Evento demonstrativo ${index + 1}: recurso em estado critico para teste de rolagem`,
-            opdata: severity >= 4 ? "Acao imediata recomendada" : "Acompanhar comportamento",
+            name: `Evento demonstrativo ${index + 1}: recurso em estado crítico para teste de rolagem`,
+            opdata: severity >= 4 ? "Ação imediata recomendada" : "Acompanhar comportamento",
             status: "INCIDENTE"
           };
         });
@@ -574,11 +574,11 @@
     function renderFooter() {
       if (!state.lastRefreshAt) return;
       if (state.error) {
-        elements.footerStatus.textContent = `Ultima sync OK ${state.lastRefreshAt.toLocaleTimeString("pt-BR")} - falha atual: ${state.error.message}`;
+        elements.footerStatus.textContent = `Última sincronização OK ${formatTime24Hours(state.lastRefreshAt)} - falha atual: ${state.error.message}`;
         return;
       }
 
-      elements.footerStatus.textContent = `Sincronizado ${state.lastRefreshAt.toLocaleTimeString("pt-BR")}`;
+      elements.footerStatus.textContent = `Sincronizado ${formatTime24Hours(state.lastRefreshAt)}`;
     }
 
     function countBySeverity(problems) {
@@ -590,8 +590,18 @@
 
     function updateClock() {
       const now = new Date();
-      elements.clockTime.textContent = now.toLocaleTimeString("pt-BR");
+      elements.clockTime.textContent = formatTime24Hours(now);
       elements.clockDate.textContent = now.toLocaleDateString("pt-BR");
+    }
+
+    function formatTime24Hours(date, includeSeconds = true) {
+      const options = {
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23"
+      };
+      if (includeSeconds) options.second = "2-digit";
+      return date.toLocaleTimeString("pt-BR", options);
     }
 
     function updateViewportMode() {
@@ -607,17 +617,12 @@
       const isLessThanOneDayOld = ageMs < 24 * 60 * 60 * 1000;
 
       if (isLessThanOneDayOld) {
-        return date.toLocaleTimeString("pt-BR", {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit"
-        });
+        return formatTime24Hours(date, false);
       }
 
       return date.toLocaleDateString("pt-BR", {
         day: "2-digit",
-        month: "2-digit",
-        year: "numeric"
+        month: "2-digit"
       });
     }
 
@@ -669,7 +674,7 @@
 
       elements.incidentFontQuickValue.textContent = `${incidentScale}%`;
       elements.cardFontQuickValue.textContent = `${cardScale}%`;
-      elements.fontPreviewState.textContent = message || (isDirty ? "Previa ativa - alteracao pendente" : "Valores atuais");
+      elements.fontPreviewState.textContent = message || (isDirty ? "Prévia ativa - alteração pendente" : "Valores atuais");
       elements.fontPreviewState.dataset.state = isDirty ? "dirty" : "clean";
       elements.fontDiscardButton.disabled = !isDirty || state.fontEditor.saving;
       elements.fontSaveButton.disabled = !isDirty || state.fontEditor.saving;
@@ -704,7 +709,7 @@
         setFontScales(state.fontEditor.savedIncident, state.fontEditor.savedCard);
       }
       if (state.fontEditor.dirty) {
-        updateFontEditor("Aplique ou descarte a previa antes de fechar");
+        updateFontEditor("Aplique ou descarte a prévia antes de fechar");
         return;
       }
 
@@ -785,7 +790,7 @@
           redirectToLogin();
           return;
         }
-        updateFontEditor(`Nao foi possivel salvar: ${error.message}`);
+        updateFontEditor(`Não foi possível salvar: ${error.message}`);
       }
     }
 
@@ -820,7 +825,7 @@
       elements.fullscreenButton.setAttribute("aria-pressed", String(isFullscreen));
       elements.fullscreenButton.disabled = !isSupported;
       const label = !isSupported
-        ? "Tela cheia indisponivel neste navegador"
+        ? "Tela cheia indisponível neste navegador"
         : isFullscreen ? "Sair da tela cheia" : "Entrar em tela cheia";
       elements.fullscreenButton.title = label;
       elements.fullscreenButton.setAttribute("aria-label", label);
@@ -841,7 +846,7 @@
           await requestFullscreen.call(root);
         }
       } catch (error) {
-        console.error("Nao foi possivel alterar o modo de tela cheia.", error);
+        console.error("Não foi possível alterar o modo de tela cheia.", error);
       } finally {
         elements.fullscreenButton.disabled = false;
         updateFullscreenButton();

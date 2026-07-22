@@ -23,22 +23,22 @@ try {
         $password = (string)($input['password'] ?? '');
 
         if ($username === '' || $password === '') {
-            json_error('Informe usuario e senha.', 422);
+            json_error('Informe usuário e senha.', 422);
         }
         if (strlen($username) > 80 || strlen($password) > 4096) {
-            json_error('Usuario ou senha excede o tamanho permitido.', 422);
+            json_error('Usuário ou senha excede o tamanho permitido.', 422);
         }
 
         if ($setupMode) {
             if (users_count() > 0) {
-                json_error('Setup inicial ja foi concluido.', 409);
+                json_error('A configuração inicial já foi concluída.', 409);
             }
 
             if (strlen($password) < 8) {
                 json_error('A senha inicial deve ter pelo menos 8 caracteres.', 422);
             }
             if (strlen($username) < 3) {
-                json_error('O usuario inicial deve ter pelo menos 3 caracteres.', 422);
+                json_error('O usuário inicial deve ter pelo menos 3 caracteres.', 422);
             }
 
             $name = trim((string)($input['name'] ?? 'Administrador'));
@@ -57,7 +57,7 @@ try {
         $user = $stmt->fetch();
 
         if (!$user || !password_verify($password, $user['password_hash'])) {
-            json_error('Usuario ou senha invalidos.', 401);
+            json_error('Usuário ou senha inválidos.', 401);
         }
 
         login_user((int)$user['id']);
@@ -69,7 +69,7 @@ try {
         json_response(['ok' => true]);
     }
 
-    json_error('Metodo nao permitido.', 405);
+    json_error('Método não permitido.', 405);
 } catch (Throwable $error) {
     handle_api_exception($error);
 }

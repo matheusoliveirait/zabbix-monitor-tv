@@ -127,7 +127,7 @@ function json_input(): array
 
     $data = json_decode($raw, true);
     if (!is_array($data)) {
-        json_error('JSON invalido.', 400);
+        json_error('JSON inválido.', 400);
     }
 
     return $data;
@@ -184,7 +184,7 @@ function parse_ids(mixed $value): array
             continue;
         }
         if (!ctype_digit($id) || $id === '0') {
-            json_error('IDs de grupos e hosts devem ser numeros positivos.', 422);
+            json_error('IDs de grupos e hosts devem ser números positivos.', 422);
         }
         $ids[$id] = $id;
     }

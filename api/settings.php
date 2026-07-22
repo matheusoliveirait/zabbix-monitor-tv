@@ -152,7 +152,7 @@ try {
         json_response(['ok' => true]);
     }
 
-    json_error('Metodo nao permitido.', 405);
+    json_error('Método não permitido.', 405);
 } catch (Throwable $error) {
     handle_api_exception($error);
 }

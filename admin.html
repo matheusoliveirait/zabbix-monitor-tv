@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Central de Incidentes - Configuracoes</title>
+  <title>Central de Incidentes - Configurações</title>
   <link rel="icon" href="assets/favicon.svg?v=5" type="image/svg+xml" />
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -16,24 +16,24 @@
         </span>
         <div>
           <strong>Central de Incidentes</strong>
-          <span>Administracao</span>
+          <span>Administração</span>
         </div>
       </a>
 
-      <nav class="admin-nav" aria-label="Secoes de configuracao" role="tablist">
+      <nav class="admin-nav" aria-label="Seções de configuração" role="tablist">
         <button class="admin-nav-item is-active" type="button" data-admin-tab="zabbix" role="tab" aria-controls="zabbixSettings" aria-selected="true">
           <span class="admin-nav-index">01</span>
-          <span><strong>Zabbix</strong><small>Conexao e escopo</small></span>
+          <span><strong>Zabbix</strong><small>Conexão e escopo</small></span>
         </button>
         <button class="admin-nav-item" type="button" data-admin-tab="customization" role="tab" aria-controls="customizationSettings" aria-selected="false">
           <span class="admin-nav-index">02</span>
-          <span><strong>Personalizacao</strong><small>Comportamento do painel</small></span>
+          <span><strong>Personalização</strong><small>Comportamento do painel</small></span>
         </button>
       </nav>
 
       <div class="admin-sidebar-footer">
-        <span id="sessionText">Carregando sessao...</span>
-        <button class="admin-logout" id="logoutButton" type="button">Encerrar sessao</button>
+        <span id="sessionText">Carregando sessão...</span>
+        <button class="admin-logout" id="logoutButton" type="button">Encerrar sessão</button>
       </div>
     </aside>
 
@@ -41,8 +41,8 @@
       <header class="admin-header">
         <div>
           <span class="admin-eyebrow">Sistema</span>
-          <h1>Configuracoes</h1>
-          <p>Ajuste a integracao e o comportamento da Central de Incidentes.</p>
+          <h1>Configurações</h1>
+          <p>Ajuste a integração e o comportamento da Central de Incidentes.</p>
         </div>
         <a class="admin-link" id="backToPanelLink" href="index.html">Voltar ao painel</a>
       </header>
@@ -56,7 +56,7 @@
           <header class="admin-view-header">
             <span>01</span>
             <div>
-              <h2>Conexao com o Zabbix</h2>
+              <h2>Conexão com o Zabbix</h2>
               <p>Credenciais, endpoint da API e origem dos incidentes monitorados.</p>
             </div>
           </header>
@@ -64,14 +64,14 @@
           <div class="admin-setting-group">
             <div class="admin-setting-intro">
               <h3>API do Zabbix</h3>
-              <p>O token permanece criptografado no servidor e nunca e devolvido ao navegador.</p>
+              <p>O token permanece criptografado no servidor e nunca é devolvido ao navegador.</p>
             </div>
             <div class="admin-setting-fields">
               <div class="admin-field admin-field-full">
                 <div class="admin-field-heading">
-                  <label id="urlFieldLabel" for="zabbixHostInput">URL da API para conexao ao Zabbix</label>
+                  <label id="urlFieldLabel" for="zabbixHostInput">URL da API para conexão ao Zabbix</label>
                   <div class="admin-segmented" aria-label="Modo de preenchimento da URL">
-                    <button class="is-active" type="button" data-url-mode="quick" aria-pressed="true">Montagem rapida</button>
+                    <button class="is-active" type="button" data-url-mode="quick" aria-pressed="true">Montagem rápida</button>
                     <button type="button" data-url-mode="full" aria-pressed="false">URL completa</button>
                   </div>
                 </div>
@@ -105,7 +105,7 @@
           <div class="admin-setting-group">
             <div class="admin-setting-intro">
               <h3>Escopo de monitoramento</h3>
-              <p>Defina quais problemas o painel deve consultar e o limite por requisicao.</p>
+              <p>Defina quais problemas o painel deve consultar e o limite por requisição.</p>
             </div>
             <div class="admin-setting-fields admin-grid-2">
               <div class="admin-field">
@@ -137,37 +137,37 @@
           <header class="admin-view-header">
             <span>02</span>
             <div>
-              <h2>Personalizacao do painel</h2>
-              <p>Controle a atualizacao, a paginacao e a ordem dos incidentes na TV.</p>
+              <h2>Personalização do painel</h2>
+              <p>Controle a atualização, a paginação e a ordem dos incidentes na TV.</p>
             </div>
           </header>
 
           <div class="admin-setting-group">
             <div class="admin-setting-intro">
-              <h3>Atualizacao e paginacao</h3>
-              <p>Tempos curtos deixam o painel mais dinamico, mas aumentam o numero de consultas.</p>
+              <h3>Atualização e paginação</h3>
+              <p>Tempos curtos deixam o painel mais dinâmico, mas aumentam o número de consultas.</p>
             </div>
             <div class="admin-setting-fields admin-grid-2">
               <div class="admin-field">
-                <label for="refreshSeconds">Atualizacao da API</label>
+                <label for="refreshSeconds">Atualização da API</label>
                 <div class="admin-number-field">
                   <input name="refresh_seconds" id="refreshSeconds" type="number" min="5" max="900" step="5" required />
                   <span>segundos</span>
                 </div>
               </div>
               <div class="admin-field">
-                <label for="pageInterval">Troca automatica de pagina</label>
+                <label for="pageInterval">Troca automática de página</label>
                 <div class="admin-number-field">
                   <input name="page_interval_seconds" id="pageInterval" type="number" min="5" max="120" step="5" required />
                   <span>segundos</span>
                 </div>
               </div>
               <div class="admin-field admin-field-full">
-                <label for="sortMode">Ordenacao padrao</label>
+                <label for="sortMode">Ordenação padrão</label>
                 <select name="sort_mode" id="sortMode" required>
                   <option value="recent">Mais recentes</option>
                   <option value="severity">Criticidade primeiro</option>
-                  <option value="duration">Duracao primeiro</option>
+                  <option value="duration">Duração primeiro</option>
                   <option value="client">Cliente / host</option>
                   <option value="problem">Problema</option>
                 </select>
@@ -177,11 +177,11 @@
 
           <div class="admin-setting-group">
             <div class="admin-setting-intro">
-              <h3>Transicao entre paginas</h3>
-              <p>Escolha como a lista troca de pagina durante a rotacao automatica.</p>
+              <h3>Transição entre páginas</h3>
+              <p>Escolha como a lista troca de página durante a rotação automática.</p>
             </div>
             <fieldset class="admin-setting-fields admin-choice-field">
-              <legend>Efeito da paginacao</legend>
+              <legend>Efeito da paginação</legend>
               <div class="admin-choice-grid">
                 <label class="admin-choice">
                   <input name="page_transition" type="radio" value="none" />
@@ -210,7 +210,7 @@
           <div class="admin-setting-group">
             <div class="admin-setting-intro">
               <h3>Escala dos textos</h3>
-              <p>Ajuste a leitura a distancia sem alterar a quantidade de informacao do painel.</p>
+              <p>Ajuste a leitura a distância sem alterar a quantidade de informação do painel.</p>
             </div>
             <div class="admin-setting-fields">
               <div class="admin-field admin-slider-field">
@@ -219,7 +219,7 @@
                   <output id="incidentFontScaleValue" for="incidentFontScale">100%</output>
                 </div>
                 <input name="incident_font_scale" id="incidentFontScale" type="range" min="85" max="200" step="5" value="100" />
-                <div class="admin-slider-scale"><span>Compacta</span><span>Padrao</span><span>Ampliada</span></div>
+                <div class="admin-slider-scale"><span>Compacta</span><span>Padrão</span><span>Ampliada</span></div>
               </div>
               <div class="admin-field admin-slider-field">
                 <div class="admin-slider-heading">
@@ -227,24 +227,24 @@
                   <output id="cardFontScaleValue" for="cardFontScale">100%</output>
                 </div>
                 <input name="card_font_scale" id="cardFontScale" type="range" min="85" max="200" step="5" value="100" />
-                <div class="admin-slider-scale"><span>Compacta</span><span>Padrao</span><span>Ampliada</span></div>
+                <div class="admin-slider-scale"><span>Compacta</span><span>Padrão</span><span>Ampliada</span></div>
               </div>
-              <button class="action admin-reset-button" id="resetCustomizationButton" type="button">Redefinir personalizacao</button>
+              <button class="action admin-reset-button" id="resetCustomizationButton" type="button">Redefinir personalização</button>
             </div>
           </div>
         </section>
 
         <footer class="admin-actions">
-          <span id="saveHint" data-state="clean">Nenhuma alteracao pendente.</span>
+          <span id="saveHint" data-state="clean">Nenhuma alteração pendente.</span>
           <div>
-            <button class="action" id="discardChangesButton" type="button" disabled>Descartar alteracoes</button>
-            <button class="action primary" id="saveSettingsButton" type="submit" disabled>Salvar configuracoes</button>
+            <button class="action" id="discardChangesButton" type="button" disabled>Descartar alterações</button>
+            <button class="action primary" id="saveSettingsButton" type="submit" disabled>Salvar configurações</button>
           </div>
         </footer>
       </form>
     </main>
   </div>
 
-  <script src="admin.js"></script>
+  <script src="admin.js?v=2"></script>
 </body>
 </html>

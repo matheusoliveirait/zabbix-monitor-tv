@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Central de Incidentes - Monitoramento Zabbix</title>
   <link rel="icon" href="assets/favicon.svg?v=5" type="image/svg+xml" />
-  <link rel="stylesheet" href="dashboard.css?v=3" />
+  <link rel="stylesheet" href="dashboard.css?v=7" />
 </head>
 <body>
   <div class="tv">
     <header class="topbar">
-      <a class="brand" href="index.html" data-home-link aria-label="Ir para o inicio">
+      <a class="brand" href="index.html" data-home-link aria-label="Ir para o início">
         <span class="brand-mark" aria-hidden="true">
           <img src="assets/logo-mark.svg?v=5" alt="" />
         </span>
@@ -33,7 +33,7 @@
               </svg>
             </button>
 
-            <section class="font-popover" id="fontSizePanel" role="dialog" aria-label="Ajuste rapido de fontes" hidden>
+            <section class="font-popover" id="fontSizePanel" role="dialog" aria-label="Ajuste rápido de fontes" hidden>
               <header class="font-popover-head">
                 <div>
                   <strong>Tamanho dos textos</strong>
@@ -63,13 +63,13 @@
               </div>
 
               <footer class="font-popover-actions">
-                <button class="font-action" id="fontResetButton" type="button">Padrao</button>
+                <button class="font-action" id="fontResetButton" type="button">Padrão</button>
                 <button class="font-action" id="fontDiscardButton" type="button" disabled>Descartar</button>
                 <button class="font-action primary" id="fontSaveButton" type="button" disabled>Aplicar</button>
               </footer>
             </section>
           </div>
-          <button class="icon-button" id="settingsButton" type="button" title="Configuracoes (atalho F2)" aria-label="Abrir configuracoes">
+          <button class="icon-button" id="settingsButton" type="button" title="Configurações (atalho F2)" aria-label="Abrir configurações">
             <svg class="icon" viewBox="0 0 24 24">
               <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
               <path d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.06.06a2.1 2.1 0 1 1-2.97 2.97l-.06-.06a1.8 1.8 0 0 0-1.98-.36 1.8 1.8 0 0 0-1.1 1.65V21a2.1 2.1 0 1 1-4.2 0v-.09a1.8 1.8 0 0 0-1.18-1.65 1.8 1.8 0 0 0-1.98.36l-.06.06a2.1 2.1 0 1 1-2.97-2.97l.06-.06A1.8 1.8 0 0 0 4.6 15a1.8 1.8 0 0 0-1.65-1.1H2.8a2.1 2.1 0 1 1 0-4.2h.09A1.8 1.8 0 0 0 4.54 8.5a1.8 1.8 0 0 0-.36-1.98l-.06-.06a2.1 2.1 0 1 1 2.97-2.97l.06.06a1.8 1.8 0 0 0 1.98.36h.08A1.8 1.8 0 0 0 10.4 2.3V2.1a2.1 2.1 0 1 1 4.2 0v.09a1.8 1.8 0 0 0 1.1 1.65 1.8 1.8 0 0 0 1.98-.36l.06-.06a2.1 2.1 0 1 1 2.97 2.97l-.06.06a1.8 1.8 0 0 0-.36 1.98v.08a1.8 1.8 0 0 0 1.65 1.1h.16a2.1 2.1 0 1 1 0 4.2h-.09A1.8 1.8 0 0 0 19.4 15Z" />
@@ -113,13 +113,13 @@
       </article>
 
       <article class="card" data-severity="3">
-        <div class="card-label">Media</div>
+        <div class="card-label">Média</div>
         <div class="card-number" id="countAverage">0</div>
         <div class="card-note" id="noteAverage">Sem incidente</div>
       </article>
 
       <article class="card" data-severity="2">
-        <div class="card-label">Atencao</div>
+        <div class="card-label">Atenção</div>
         <div class="card-number" id="countWarning">0</div>
         <div class="card-note" id="noteWarning">Sem incidente</div>
       </article>
@@ -129,7 +129,7 @@
       <div class="panel-head">
         <div class="panel-title">
           <h2>Incidentes recentes <span class="page-title" id="pageTitle"></span></h2>
-          <div class="panel-subtitle" id="panelSubtitle">Aguardando atualizacao</div>
+          <div class="panel-subtitle" id="panelSubtitle">Aguardando atualização</div>
         </div>
         <div class="status-pill" id="statusPill">Sem dados</div>
       </div>
@@ -139,18 +139,18 @@
         <button class="sort-button" type="button" data-sort-mode="severity">Criticidade</button>
         <button class="sort-button" type="button" data-sort-mode="client">Cliente / Host</button>
         <button class="sort-button" type="button" data-sort-mode="problem">Problema</button>
-        <button class="sort-button" type="button" data-sort-mode="duration">Duracao</button>
+        <button class="sort-button" type="button" data-sort-mode="duration">Duração</button>
       </div>
 
       <div class="problem-list" id="problemList" aria-live="polite"></div>
     </main>
 
     <footer class="footer">
-      <div class="footer-status" id="footerStatus">Aguardando configuracao</div>
+      <div class="footer-status" id="footerStatus">Aguardando configuração</div>
       <div>Central de Incidentes</div>
     </footer>
   </div>
 
-  <script src="app.js?v=5"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>
