@@ -41,6 +41,13 @@ run_installer() {
         "$@"
 }
 
+if CENTRAL_INCIDENTES_TEST_APT_UPDATE_OUTPUT='W: GPG error: https://example.invalid stable InRelease: NO_PUBKEY 0123456789ABCDEF' \
+    run_installer 2>/dev/null; then
+    printf 'Falha: repositório sem chave pública deveria interromper a instalação.\n' >&2
+    exit 1
+fi
+assert_missing "$INSTALL_DIR"
+
 run_installer
 assert_file "$INSTALL_DIR/index.php"
 assert_file "$INSTALL_DIR/setup/index.php"

@@ -41,7 +41,7 @@ O projeto consulta a API oficial do Zabbix, protege o token no backend e apresen
 
 Os comandos abaixo baixam o instalador oficial da release mais recente e iniciam o assistente. Ao final, o terminal mostra o endereco do wizard e um codigo temporario.
 
-### Linux (Ubuntu ou Debian)
+### Linux (Ubuntu, Debian ou Linux Mint)
 
 Cole esta linha no terminal:
 
@@ -58,6 +58,8 @@ Abra o PowerShell, preferencialmente como administrador, e cole esta linha:
 ```
 
 O instalador apresenta as escolhas de porta, firewall, arquivos existentes e banco antes de realizar alteracoes.
+
+No Linux, o instalador valida os repositórios e simula a resolução das dependências antes de instalar pacotes. Ele interrompe a operação quando encontra uma assinatura inválida, chave pública ausente ou dependências inconsistentes, sem desativar fontes externas nem remover pacotes automaticamente.
 
 ## Decisoes seguras do instalador
 
@@ -109,7 +111,7 @@ No passo 3 do wizard, **Usuario** e **Senha** sao credenciais do MySQL/MariaDB c
 
 Este caminho permite baixar e revisar o instalador antes da execucao.
 
-### Linux (Ubuntu ou Debian)
+### Linux (Ubuntu, Debian ou Linux Mint)
 
 ```bash
 wget https://github.com/matheusoliveirait/zabbix-monitor-tv/releases/latest/download/install.sh
@@ -140,6 +142,21 @@ sudo ./install.sh --apache --port 8090 --non-interactive
 Quando nenhuma porta e informada, o instalador procura uma porta livre nesta ordem: `80`, `8080`, `8081` e `8888`. Uma porta especifica pode ser escolhida com `--port`; se estiver ocupada, a instalacao e interrompida sem alterar o servico existente. A porta `443` deve ser configurada depois com HTTPS e certificado em um proxy reverso.
 
 Use `--help` para consultar dominio, diretorio, versao, porta, atualizacao, firewall e banco.
+
+#### Problemas com o APT
+
+Repositórios de terceiros com chaves expiradas ou ausentes podem impedir a instalação mesmo que o Nginx ou Apache já esteja funcionando. O instalador mostra o erro original e encerra antes de copiar arquivos.
+
+Revise o estado do sistema com:
+
+```bash
+sudo dpkg --configure -a
+apt-mark showhold
+sudo apt-get --fix-broken install
+sudo apt-get update
+```
+
+Se `apt-get update` indicar `NO_PUBKEY`, `EXPKEYSIG`, `BADSIG` ou outro erro de assinatura, corrija ou desative apenas o repositório mencionado conforme a documentação oficial do fornecedor. Depois que a atualização terminar sem erros, execute novamente o comando de instalação do painel.
 
 ### Windows com Apache ou XAMPP
 
@@ -255,7 +272,7 @@ Os cenarios usam apenas nomes ficticios.
 - `config/app.example.php`: modelo seguro da configuracao local.
 - `setup/`: instalador web protegido por codigo temporario.
 - `deploy/`: modelos revisaveis para Apache e Nginx.
-- `install.sh`: preparacao automatizada para Ubuntu e Debian.
+- `install.sh`: preparacao automatizada para Ubuntu, Debian e Linux Mint.
 - `install-windows.ps1`: preparacao automatizada para Apache e XAMPP no Windows.
 
 ## Seguranca

@@ -18,7 +18,9 @@ INSTALL_ACTION="${CENTRAL_INCIDENTES_INSTALL_ACTION:-}"
 RESET_DATABASE="${CENTRAL_INCIDENTES_RESET_DATABASE:-0}"
 OPEN_FIREWALL="${CENTRAL_INCIDENTES_OPEN_FIREWALL:-0}"
 TEST_MODE="${CENTRAL_INCIDENTES_TEST_MODE:-0}"
+TEST_APT_UPDATE_OUTPUT="${CENTRAL_INCIDENTES_TEST_APT_UPDATE_OUTPUT:-}"
 WORK_DIR=""
+APT_WORK_DIR=""
 POLICY_RC_CREATED=0
 EXISTING_BACKUP=""
 FILES_REPLACED=0
@@ -84,6 +86,9 @@ cleanup() {
     if [[ -n "${WORK_DIR:-}" ]]; then
         rm -rf -- "$WORK_DIR"
     fi
+    if [[ -n "${APT_WORK_DIR:-}" ]]; then
+        rm -rf -- "$APT_WORK_DIR"
+    fi
 }
 
 trap cleanup EXIT
@@ -103,6 +108,81 @@ warn() {
 fail() {
     printf '\033[1;31mErro: %s\033[0m\n' "$1" >&2
     exit 1
+}
+
+apt_log_has_signature_error() {
+    local log_file="$1"
+    grep -Eqi \
+        'NO_PUBKEY|EXPKEYSIG|BADSIG|GPG error:|signature verification|assinaturas?.*(não|nao).*verific|repository .* (is not signed|não está assinado|nao esta assinado)' \
+        "$log_file"
+}
+
+show_apt_recovery() {
+    printf '\n'
+    warn "O APT precisa estar consistente antes que o painel possa instalar dependências."
+    printf 'O instalador não desativa repositórios, importa chaves nem remove pacotes automaticamente.\n'
+    printf 'Revise o diagnóstico acima e execute, nesta ordem:\n\n'
+    printf '  sudo dpkg --configure -a\n'
+    printf '  apt-mark showhold\n'
+    printf '  sudo apt-get --fix-broken install\n'
+    printf '  sudo apt-get update\n\n'
+    printf 'Se houver erro de assinatura, corrija ou desative somente o repositório indicado,\n'
+    printf 'seguindo a documentação oficial do fornecedor, e execute o instalador novamente.\n'
+}
+
+show_apt_state() {
+    printf '\nEstado informado pelo dpkg:\n'
+    dpkg --audit || true
+    printf '\nPacotes marcados como retidos (hold):\n'
+    local held_packages
+    held_packages=$(apt-mark showhold 2>/dev/null || true)
+    if [[ -n "$held_packages" ]]; then
+        printf '%s\n' "$held_packages"
+    else
+        printf '  Nenhum pacote retido foi encontrado.\n'
+    fi
+}
+
+validate_supported_linux() {
+    [[ -r /etc/os-release ]] || fail "Não foi possível identificar a distribuição Linux."
+
+    local distro_family
+    distro_family=$(
+        # O subshell impede que VERSION e outras variáveis do sistema
+        # sobrescrevam as opções já carregadas pelo instalador.
+        source /etc/os-release
+        printf '%s %s' "${ID:-}" "${ID_LIKE:-}" | tr '[:upper:]' '[:lower:]'
+    )
+    [[ "$distro_family" =~ (^|[[:space:]])(debian|ubuntu|linuxmint)([[:space:]]|$) ]] ||
+        fail "Esta versão oferece suporte a Debian, Ubuntu e Linux Mint."
+}
+
+run_apt_preflight() {
+    APT_WORK_DIR=$(mktemp -d)
+    local update_log="$APT_WORK_DIR/update.log"
+    local simulation_log="$APT_WORK_DIR/simulation.log"
+
+    info "Validando os repositórios do sistema..."
+    if [[ "$TEST_MODE" == "1" ]]; then
+        printf '%s\n' "$TEST_APT_UPDATE_OUTPUT" > "$update_log"
+    elif ! apt-get update 2>&1 | tee "$update_log"; then
+        show_apt_recovery
+        fail "Não foi possível atualizar a lista de pacotes."
+    fi
+
+    if apt_log_has_signature_error "$update_log"; then
+        show_apt_recovery
+        fail "Um ou mais repositórios possuem assinatura inválida ou chave pública ausente."
+    fi
+
+    [[ "$TEST_MODE" == "1" ]] && return
+
+    info "Simulando a instalação das dependências..."
+    if ! apt-get install --simulate "${COMMON_PACKAGES[@]}" 2>&1 | tee "$simulation_log"; then
+        show_apt_state
+        show_apt_recovery
+        fail "O APT não conseguiu resolver as dependências. Nenhum pacote do painel foi instalado."
+    fi
 }
 
 backup_config_file() {
@@ -200,7 +280,8 @@ else
     [[ "${EUID}" -eq 0 ]] || fail "Execute o instalador com sudo."
 fi
 if [[ "$TEST_MODE" != "1" ]]; then
-    command -v apt-get >/dev/null 2>&1 || fail "Esta versão oferece suporte a Ubuntu e Debian."
+    validate_supported_linux
+    command -v apt-get >/dev/null 2>&1 || fail "O gerenciador de pacotes APT não foi encontrado."
 fi
 [[ "$DB_NAME" =~ ^[A-Za-z0-9_]+$ ]] || fail "Nome de banco inválido."
 [[ "$DB_USER" =~ ^[A-Za-z0-9_]+$ ]] || fail "Usuário de banco inválido."
@@ -344,11 +425,28 @@ if [[ "$NON_INTERACTIVE" != "1" ]]; then
 fi
 [[ "$INSTALL_ACTION" == "update" ]] && CONFIGURE_LOCAL_DB=0
 
-if [[ "$TEST_MODE" != "1" ]]; then
+COMMON_PACKAGES=(iproute2 ca-certificates curl unzip wget openssl php-cli php-common php-mysql php-curl php-mbstring)
+if [[ "$CONFIGURE_LOCAL_DB" == "1" ]]; then
+    COMMON_PACKAGES+=(mariadb-server)
+fi
+if [[ "$WEB_SERVER" == "apache" ]]; then
+    COMMON_PACKAGES+=(apache2 libapache2-mod-php)
+else
+    COMMON_PACKAGES+=(nginx php-fpm)
+fi
+
+if [[ "$TEST_MODE" != "1" || -n "$TEST_APT_UPDATE_OUTPUT" ]]; then
     export DEBIAN_FRONTEND=noninteractive
-    info "Atualizando a lista de pacotes..."
-    apt-get update -qq
-    apt-get install -y -qq iproute2
+    run_apt_preflight
+fi
+
+if [[ "$TEST_MODE" != "1" ]]; then
+    info "Instalando a ferramenta de detecção de portas..."
+    if ! apt-get install -y iproute2; then
+        show_apt_state
+        show_apt_recovery
+        fail "Não foi possível instalar iproute2."
+    fi
 fi
 detect_existing_port
 
@@ -399,16 +497,6 @@ if [[ "$NON_INTERACTIVE" != "1" && "$OPEN_FIREWALL" != "1" ]]; then
     ask_yes_no "Liberar esta porta no firewall?" "no" && OPEN_FIREWALL=1
 fi
 
-COMMON_PACKAGES=(ca-certificates curl unzip wget openssl php-cli php-common php-mysql php-curl php-mbstring)
-if [[ "$CONFIGURE_LOCAL_DB" == "1" ]]; then
-    COMMON_PACKAGES+=(mariadb-server)
-fi
-if [[ "$WEB_SERVER" == "apache" ]]; then
-    COMMON_PACKAGES+=(apache2 libapache2-mod-php)
-else
-    COMMON_PACKAGES+=(nginx php-fpm)
-fi
-
 if [[ "$TEST_MODE" != "1" ]]; then
     info "Instalando dependências..."
 
@@ -420,7 +508,11 @@ if [[ "$TEST_MODE" != "1" ]]; then
         POLICY_RC_CREATED=1
     fi
 
-    apt-get install -y -qq "${COMMON_PACKAGES[@]}"
+    if ! apt-get install -y "${COMMON_PACKAGES[@]}"; then
+        show_apt_state
+        show_apt_recovery
+        fail "A instalação das dependências falhou."
+    fi
 
     if [[ "$POLICY_RC_CREATED" == "1" ]]; then
         rm -f /usr/sbin/policy-rc.d
