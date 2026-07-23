@@ -70,6 +70,10 @@ Se uma tentativa anterior tiver deixado uma pasta `central_incidentes` que o ser
 
 Antes de criar o banco, o instalador verifica se o usuário do serviço consegue escrever no diretório de dados. Quando necessário, oferece corrigir apenas o proprietário e a permissão de escrita da pasta principal, sem alteração recursiva dos bancos existentes. Se a preparação automática falhar, a instalação só continua em modo manual após confirmação explícita.
 
+Ao substituir uma instalação existente no Linux, o instalador sempre pergunta como tratar o banco do painel: preservar, excluir e recriar, configurar manualmente ou cancelar. A mensagem sobre um servidor MySQL/MariaDB existente não significa que o banco `central_incidentes` já exista; o banco é verificado separadamente.
+
+O instalador é executado como `root`, mas MySQL e MariaDB trabalham com o usuário próprio do serviço. Se esse processo for bloqueado por permissões, SELinux ou AppArmor, o instalador mostra uma recuperação assistida antes de tentar novamente. Qualquer exclusão exige a confirmação literal `EXCLUIR` e fica limitada ao banco, usuário e pasta residual do painel.
+
 ## Decisoes seguras do instalador
 
 ### Porta e acesso pela rede
