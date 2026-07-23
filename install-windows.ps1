@@ -1,5 +1,13 @@
 #requires -Version 5.1
 
+<#
+.SYNOPSIS
+Prepara a Central de Incidentes em um Apache existente ou no XAMPP.
+
+.EXAMPLE
+& { $ErrorActionPreference = 'Stop'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $arquivo = Join-Path $env:TEMP 'central-incidentes-install.ps1'; Invoke-WebRequest 'https://github.com/matheusoliveirait/zabbix-monitor-tv/releases/latest/download/install-windows.ps1' -UseBasicParsing -OutFile $arquivo; powershell -NoProfile -ExecutionPolicy Bypass -File $arquivo }
+#>
+
 [CmdletBinding()]
 param(
     [string]$ApacheRoot = $env:CENTRAL_INCIDENTES_APACHE_ROOT,
