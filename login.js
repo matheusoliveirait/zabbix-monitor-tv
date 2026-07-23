@@ -50,6 +50,10 @@ async function api(path, options = {}) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok || data.ok === false) {
+    if (data.needsInstallation && data.setupUrl) {
+      window.location.replace(data.setupUrl);
+      throw new Error("Redirecionando para a instalação.");
+    }
     throw new Error(data.error || `HTTP ${response.status}`);
   }
 
