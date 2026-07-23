@@ -64,6 +64,8 @@ No Linux, o instalador valida os repositórios e simula a resolução das depend
 
 Se MySQL ou MariaDB já estiver instalado, o servidor existente é preservado e reutilizado. O instalador nunca troca automaticamente MySQL por MariaDB e executa o APT com remoções de pacotes bloqueadas.
 
+Quando o acesso administrativo automático não está disponível, o instalador solicita temporariamente a senha do usuário `root` do MySQL/MariaDB. A senha não é exibida nem armazenada. Se o banco `central_incidentes` já existir, é possível preservá-lo ou excluir e recriar somente esse banco e seu usuário dedicado; os demais bancos nunca são alterados.
+
 ## Decisoes seguras do instalador
 
 ### Porta e acesso pela rede
