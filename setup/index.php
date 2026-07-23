@@ -71,22 +71,29 @@ header('X-Frame-Options: DENY');
           <div class="step-heading">
             <span class="step-number">Antes de começar</span>
             <h2>Prepare os arquivos no servidor</h2>
-            <p>O assistente web precisa do arquivo temporário criado pelo instalador.</p>
+            <p>Execute somente o comando do seu sistema. O instalador prepara o servidor e libera este assistente.</p>
           </div>
           <div class="setup-platforms">
             <div class="command-panel">
               <span>Ubuntu ou Debian</span>
-              <code>wget https://github.com/matheusoliveirait/zabbix-monitor-tv/releases/latest/download/install.sh</code>
-              <code>chmod +x install.sh &amp;&amp; sudo ./install.sh</code>
+              <code>wget -qO /tmp/central-incidentes-install.sh https://github.com/matheusoliveirait/zabbix-monitor-tv/releases/latest/download/install.sh &amp;&amp; sudo bash /tmp/central-incidentes-install.sh</code>
             </div>
             <div class="command-panel">
               <span>Windows PowerShell</span>
-              <code>Invoke-WebRequest https://github.com/matheusoliveirait/zabbix-monitor-tv/releases/latest/download/install-windows.ps1 -OutFile install-windows.ps1</code>
-              <code>powershell -ExecutionPolicy Bypass -File .\install-windows.ps1</code>
+              <code>&amp; { $ErrorActionPreference = 'Stop'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $arquivo = Join-Path $env:TEMP 'central-incidentes-install.ps1'; Invoke-WebRequest 'https://github.com/matheusoliveirait/zabbix-monitor-tv/releases/latest/download/install-windows.ps1' -UseBasicParsing -OutFile $arquivo; powershell -NoProfile -ExecutionPolicy Bypass -File $arquivo }</code>
             </div>
           </div>
-          <p class="field-help">Depois de executar o script, recarregue esta página usando o endereço apresentado no terminal.</p>
-          <button class="button primary" type="button" data-reload>Verificar novamente</button>
+          <div class="setup-install-actions">
+            <div class="setup-action-block">
+              <p class="field-help">Prefere revisar cada etapa? Consulte o processo detalhado no projeto.</p>
+              <a class="button secondary" href="https://github.com/matheusoliveirait/zabbix-monitor-tv#instalacao-manual-assistida"
+                target="_blank" rel="noopener">Ver instalação manual</a>
+            </div>
+            <div class="setup-action-block">
+              <p class="field-help">Já executou o script? Recarregue usando o endereço mostrado no terminal.</p>
+              <button class="button primary" type="button" data-reload>Verificar novamente</button>
+            </div>
+          </div>
         </section>
 
         <section class="setup-step" data-step="unlock" hidden>

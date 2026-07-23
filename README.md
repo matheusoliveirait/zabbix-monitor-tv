@@ -37,9 +37,33 @@ O projeto consulta a API oficial do Zabbix, protege o token no backend e apresen
 - Zabbix 7 ou versao compativel com os metodos utilizados.
 - Token da API com acesso aos hosts e problemas monitorados.
 
-## Instalacao automatizada no Linux
+## Instalacao em um comando
 
-O instalador oferece suporte inicial a Ubuntu e Debian. Baixe o script da release, revise e execute:
+Os comandos abaixo baixam o instalador oficial da release mais recente e iniciam o assistente. Ao final, o terminal mostra o endereco do wizard e um codigo temporario.
+
+### Linux (Ubuntu ou Debian)
+
+Cole esta linha no terminal:
+
+```bash
+wget -qO /tmp/central-incidentes-install.sh https://github.com/matheusoliveirait/zabbix-monitor-tv/releases/latest/download/install.sh && sudo bash /tmp/central-incidentes-install.sh
+```
+
+### Windows com Apache ou XAMPP
+
+Abra o PowerShell, preferencialmente como administrador, e cole esta linha:
+
+```powershell
+& { $ErrorActionPreference = 'Stop'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $arquivo = Join-Path $env:TEMP 'central-incidentes-install.ps1'; Invoke-WebRequest 'https://github.com/matheusoliveirait/zabbix-monitor-tv/releases/latest/download/install-windows.ps1' -UseBasicParsing -OutFile $arquivo; powershell -NoProfile -ExecutionPolicy Bypass -File $arquivo }
+```
+
+O instalador nao substitui uma instalacao existente. Se as portas `80`, `8080`, `8081` e `8888` estiverem ocupadas, ele interrompe sem alterar o servidor e informa como escolher outra.
+
+## Instalacao manual assistida
+
+Este caminho permite baixar e revisar o instalador antes da execucao.
+
+### Linux (Ubuntu ou Debian)
 
 ```bash
 wget https://github.com/matheusoliveirait/zabbix-monitor-tv/releases/latest/download/install.sh
@@ -71,9 +95,9 @@ Quando nenhuma porta e informada, o instalador procura uma porta livre nesta ord
 
 Use `--help` para consultar dominio, diretorio, versao, porta e banco externo. O script inicial nao sobrescreve instalacoes existentes.
 
-## Instalacao automatizada no Windows
+### Windows com Apache ou XAMPP
 
-O instalador PowerShell reutiliza uma instalacao existente do Apache ou XAMPP. Abra o PowerShell, baixe o arquivo, revise e execute:
+O instalador PowerShell reutiliza uma instalacao existente do Apache ou XAMPP:
 
 ```powershell
 Invoke-WebRequest `
@@ -106,7 +130,7 @@ Para verificar o ambiente sem copiar arquivos ou reiniciar servicos:
 .\install-windows.ps1 -CheckOnly
 ```
 
-## Instalacao manual com XAMPP
+## Instalacao totalmente manual com XAMPP
 
 1. Coloque o projeto em:
 

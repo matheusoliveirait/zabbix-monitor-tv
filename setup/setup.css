@@ -664,9 +664,31 @@ select:focus-visible {
   white-space: pre-wrap;
 }
 
+.setup-install-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px 32px;
+  align-items: flex-start;
+}
+
+.setup-action-block {
+  min-width: min(100%, 300px);
+  flex: 1 1 300px;
+  display: grid;
+  gap: 8px;
+}
+
+.setup-action-block .field-help {
+  margin: 0;
+}
+
 @media (max-width: 900px) {
   .setup-platforms {
     grid-template-columns: 1fr;
+  }
+
+  .setup-install-actions {
+    display: grid;
   }
 }
 

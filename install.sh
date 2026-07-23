@@ -51,6 +51,9 @@ usage() {
     cat <<'EOF'
 Uso: sudo ./install.sh [opções]
 
+Instalação em um comando:
+  wget -qO /tmp/central-incidentes-install.sh https://github.com/matheusoliveirait/zabbix-monitor-tv/releases/latest/download/install.sh && sudo bash /tmp/central-incidentes-install.sh
+
   --apache             usar Apache
   --port PORTA         porta HTTP; detectada automaticamente quando omitida
   --nginx              usar Nginx
