@@ -19,6 +19,8 @@ RESET_DATABASE="${CENTRAL_INCIDENTES_RESET_DATABASE:-0}"
 OPEN_FIREWALL="${CENTRAL_INCIDENTES_OPEN_FIREWALL:-0}"
 TEST_MODE="${CENTRAL_INCIDENTES_TEST_MODE:-0}"
 TEST_APT_UPDATE_OUTPUT="${CENTRAL_INCIDENTES_TEST_APT_UPDATE_OUTPUT:-}"
+TEST_VALIDATE_OS="${CENTRAL_INCIDENTES_TEST_VALIDATE_OS:-0}"
+OS_RELEASE_FILE="${CENTRAL_INCIDENTES_OS_RELEASE_FILE:-/etc/os-release}"
 WORK_DIR=""
 APT_WORK_DIR=""
 POLICY_RC_CREATED=0
@@ -144,17 +146,39 @@ show_apt_state() {
 }
 
 validate_supported_linux() {
-    [[ -r /etc/os-release ]] || fail "Não foi possível identificar a distribuição Linux."
+    [[ -r "$OS_RELEASE_FILE" ]] || fail "Não foi possível identificar a distribuição Linux."
 
-    local distro_family
-    distro_family=$(
+    local distro_info
+    distro_info=$(
         # O subshell impede que VERSION e outras variáveis do sistema
         # sobrescrevam as opções já carregadas pelo instalador.
-        source /etc/os-release
-        printf '%s %s' "${ID:-}" "${ID_LIKE:-}" | tr '[:upper:]' '[:lower:]'
+        source "$OS_RELEASE_FILE"
+        printf '%s\t%s\t%s' "${ID:-}" "${VERSION_ID:-}" "${PRETTY_NAME:-Linux}"
     )
-    [[ "$distro_family" =~ (^|[[:space:]])(debian|ubuntu|linuxmint)([[:space:]]|$) ]] ||
-        fail "Esta versão oferece suporte a Debian, Ubuntu e Linux Mint."
+
+    local distro_id=""
+    local distro_version=""
+    local distro_name=""
+    IFS=$'\t' read -r distro_id distro_version distro_name <<< "$distro_info"
+    distro_id=$(printf '%s' "$distro_id" | tr '[:upper:]' '[:lower:]')
+
+    local minimum_major
+    case "$distro_id" in
+        linuxmint) minimum_major=21 ;;
+        ubuntu) minimum_major=22 ;;
+        debian) minimum_major=12 ;;
+        *)
+            fail "Use Linux Mint 21+, Ubuntu 22.04+ ou Debian 12+."
+            ;;
+    esac
+
+    local distro_major="${distro_version%%.*}"
+    [[ "$distro_major" =~ ^[0-9]+$ ]] ||
+        fail "Não foi possível validar a versão de ${distro_name:-$distro_id}."
+
+    if ((10#$distro_major < minimum_major)); then
+        fail "${distro_name:-$distro_id} não é compatível: o painel exige PHP 8.1 ou superior. Use Linux Mint 21+, Ubuntu 22.04+ ou Debian 12+."
+    fi
 }
 
 run_apt_preflight() {
@@ -279,8 +303,10 @@ if [[ "$TEST_MODE" == "1" ]]; then
 else
     [[ "${EUID}" -eq 0 ]] || fail "Execute o instalador com sudo."
 fi
-if [[ "$TEST_MODE" != "1" ]]; then
+if [[ "$TEST_MODE" != "1" || "$TEST_VALIDATE_OS" == "1" ]]; then
     validate_supported_linux
+fi
+if [[ "$TEST_MODE" != "1" ]]; then
     command -v apt-get >/dev/null 2>&1 || fail "O gerenciador de pacotes APT não foi encontrado."
 fi
 [[ "$DB_NAME" =~ ^[A-Za-z0-9_]+$ ]] || fail "Nome de banco inválido."
