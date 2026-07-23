@@ -698,6 +698,40 @@ read_database_state() {
         );"
 }
 
+read_database_data_dir() {
+    run_mysql_admin --batch --skip-column-names --execute="SELECT @@datadir;"
+}
+
+confirm_database_reset() {
+    printf '\n'
+    if [[ "$ORPHAN_DB_DIR" == "1" ]]; then
+        printf 'A pasta residual de %s será arquivada e um banco limpo será criado.\n' "$DB_NAME"
+    else
+        printf 'Esta ação apaga permanentemente todas as tabelas de %s.\n' "$DB_NAME"
+    fi
+    printf 'Digite EXCLUIR para confirmar: '
+    read -r confirmation
+    [[ "$confirmation" == "EXCLUIR" ]] \
+        || fail "Exclusão do banco cancelada; nenhum dado foi removido."
+}
+
+archive_orphan_database_dir() {
+    [[ "$ORPHAN_DB_DIR" == "1" ]] || return
+    [[ -n "$DB_DATA_DIR" && "$DB_DATA_DIR" != "/" ]] \
+        || fail "O diretório de dados do banco não é seguro para arquivamento automático."
+    [[ "$DB_SCHEMA_PATH" == "$DB_DATA_DIR/"* ]] \
+        || fail "A pasta residual está fora do diretório de dados esperado."
+    [[ -e "$DB_SCHEMA_PATH" || -L "$DB_SCHEMA_PATH" ]] || return
+
+    local backup_base="/var/backups/central-incidentes"
+    install -d -o root -g root -m 0700 "$backup_base"
+    local backup_dir
+    backup_dir=$(mktemp -d "$backup_base/mysql-orphan-XXXXXXXX")
+    chmod 0700 "$backup_dir"
+    mv -- "$DB_SCHEMA_PATH" "$backup_dir/$DB_NAME"
+    success "Pasta residual preservada em $backup_dir/$DB_NAME."
+}
+
 DB_PASSWORD=""
 DB_PREPARED=0
 if [[ "$INSTALL_ACTION" != "update" && "$CONFIGURE_LOCAL_DB" == "1" ]]; then
@@ -725,35 +759,51 @@ if [[ "$INSTALL_ACTION" != "update" && "$CONFIGURE_LOCAL_DB" == "1" ]]; then
 
     if [[ "$DB_ADMIN_READY" == "1" ]]; then
         SHOULD_CREATE=1
-        if [[ "$EXISTING_STATE" != "0:0" && "$RESET_DATABASE" == "1" \
-            && "$NON_INTERACTIVE" != "1" ]]; then
-            printf '\nEsta ação apaga permanentemente todas as tabelas de %s.\n' "$DB_NAME"
-            printf 'Digite EXCLUIR para confirmar: '
-            read -r confirmation
-            [[ "$confirmation" == "EXCLUIR" ]] \
-                || fail "Exclusão do banco cancelada; nenhum dado foi removido."
+        ORPHAN_DB_DIR=0
+        DB_DATA_DIR=""
+        DB_SCHEMA_PATH=""
+        EXISTING_DATABASE_COUNT="${EXISTING_STATE%%:*}"
+        DB_RESOURCES_EXIST=0
+        [[ "$EXISTING_STATE" != "0:0" ]] && DB_RESOURCES_EXIST=1
+
+        if [[ "$EXISTING_DATABASE_COUNT" == "0" ]] \
+            && DB_DATA_DIR=$(read_database_data_dir 2>/dev/null); then
+            DB_DATA_DIR=$(readlink -f -- "${DB_DATA_DIR%/}" 2>/dev/null || true)
+            if [[ -n "$DB_DATA_DIR" && "$DB_DATA_DIR" != "/" ]]; then
+                DB_SCHEMA_PATH="$DB_DATA_DIR/$DB_NAME"
+                if [[ -e "$DB_SCHEMA_PATH" || -L "$DB_SCHEMA_PATH" ]]; then
+                    ORPHAN_DB_DIR=1
+                    DB_RESOURCES_EXIST=1
+                    warn "Foi encontrada uma pasta residual não registrada pelo banco: $DB_SCHEMA_PATH"
+                fi
+            fi
         fi
 
-        if [[ "$EXISTING_STATE" != "0:0" && "$RESET_DATABASE" != "1" ]]; then
+        if [[ "$DB_RESOURCES_EXIST" == "1" && "$RESET_DATABASE" == "1" \
+            && "$NON_INTERACTIVE" != "1" ]]; then
+            confirm_database_reset
+        fi
+
+        if [[ "$DB_RESOURCES_EXIST" == "1" && "$RESET_DATABASE" != "1" ]]; then
             if [[ "$NON_INTERACTIVE" == "1" ]]; then
                 SHOULD_CREATE=0
-                DB_NOTICE="O banco ou usuário $DB_NAME já existe. Use Banco existente ou execute novamente com --reset-database para recriar somente o banco do painel."
+                DB_NOTICE="O banco, usuário ou diretório de $DB_NAME já existe. Use Banco existente ou execute novamente com --reset-database para recriar somente o banco do painel."
                 warn "$DB_NOTICE"
             else
                 printf '\n'
-                warn "O banco ou usuário '$DB_NAME' já existe."
-                printf '  [1] Preservar o banco do painel e informar suas credenciais no wizard\n'
-                printf '  [2] Excluir e recriar somente o banco e o usuário do painel\n'
+                warn "Foram encontrados dados, usuário ou arquivos residuais de '$DB_NAME'."
+                printf '  [1] Preservar o conteúdo encontrado e usar Banco existente no wizard\n'
+                if [[ "$ORPHAN_DB_DIR" == "1" ]]; then
+                    printf '  [2] Arquivar a pasta residual e criar um banco limpo\n'
+                else
+                    printf '  [2] Excluir e recriar somente o banco e o usuário do painel\n'
+                fi
                 printf '  [3] Cancelar\n'
                 printf 'Escolha uma opção [1]: '
                 read -r choice
                 case "${choice:-1}" in
                     2)
-                        printf '\nEsta ação apaga permanentemente todas as tabelas de %s.\n' "$DB_NAME"
-                        printf 'Digite EXCLUIR para confirmar: '
-                        read -r confirmation
-                        [[ "$confirmation" == "EXCLUIR" ]] \
-                            || fail "Exclusão do banco cancelada; nenhum dado foi removido."
+                        confirm_database_reset
                         RESET_DATABASE=1
                         ;;
                     3) fail "Instalação cancelada; nenhum dado foi removido." ;;
@@ -775,6 +825,7 @@ DROP USER IF EXISTS '$DB_USER'@'localhost';
 DROP USER IF EXISTS '$DB_USER'@'127.0.0.1';
 FLUSH PRIVILEGES;
 SQL
+                archive_orphan_database_dir
             fi
 
             DB_PASSWORD=$(openssl rand -hex 24)

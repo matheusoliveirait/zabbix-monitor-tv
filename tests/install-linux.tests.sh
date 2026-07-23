@@ -64,6 +64,9 @@ fi
 grep -q 'Senha do usuário root do %s (não será armazenada)' "$ROOT/install.sh"
 grep -q 'Excluir e recriar somente o banco e o usuário do painel' "$ROOT/install.sh"
 grep -Fq 'MYSQL_PWD="$MYSQL_ADMIN_PASSWORD" mysql' "$ROOT/install.sh"
+grep -q 'Foi encontrada uma pasta residual não registrada pelo banco' "$ROOT/install.sh"
+grep -Fq '/var/backups/central-incidentes' "$ROOT/install.sh"
+grep -q 'archive_orphan_database_dir' "$ROOT/install.sh"
 
 MINT_20_OS_RELEASE="$TEMP_ROOT/mint-20-os-release"
 printf 'ID=linuxmint\nVERSION_ID="20.3"\nPRETTY_NAME="Linux Mint 20.3"\n' > "$MINT_20_OS_RELEASE"
