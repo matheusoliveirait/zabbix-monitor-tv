@@ -72,7 +72,7 @@ Antes de criar o banco, o instalador verifica se o usuário do serviço consegue
 
 Ao substituir uma instalação existente no Linux, o instalador sempre pergunta como tratar o banco do painel: preservar, excluir e recriar, configurar manualmente ou cancelar. A mensagem sobre um servidor MySQL/MariaDB existente não significa que o banco `central_incidentes` já exista; o banco é verificado separadamente.
 
-O instalador é executado como `root`, mas MySQL e MariaDB trabalham com o usuário próprio do serviço. Se esse processo for bloqueado por permissões, SELinux ou AppArmor, o instalador mostra uma recuperação assistida antes de tentar novamente. Qualquer exclusão exige a confirmação literal `EXCLUIR` e fica limitada ao banco, usuário e pasta residual do painel.
+O instalador é executado como `root`, mas MySQL e MariaDB trabalham com o usuário próprio do serviço. Se esse processo for bloqueado por permissões, SELinux ou AppArmor, o instalador mostra uma recuperação assistida antes de tentar novamente. No AppArmor, o perfil efetivamente informado pelo kernel recebe acesso somente ao diretório de dados detectado; depois ele é recarregado e o serviço do banco é reiniciado. Qualquer exclusão exige a confirmação literal `EXCLUIR` e fica limitada ao banco, usuário e pasta residual do painel.
 
 ## Decisoes seguras do instalador
 
