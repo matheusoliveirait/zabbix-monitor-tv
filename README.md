@@ -68,6 +68,8 @@ Quando o acesso administrativo automático não está disponível, o instalador 
 
 Se uma tentativa anterior tiver deixado uma pasta `central_incidentes` que o servidor não reconhece como banco, o instalador também a detecta. Ao recriar, essa pasta residual é arquivada com permissão restrita em `/var/backups/central-incidentes/` antes da criação do banco limpo.
 
+Antes de criar o banco, o instalador verifica se o usuário do serviço consegue escrever no diretório de dados. Quando necessário, oferece corrigir apenas o proprietário e a permissão de escrita da pasta principal, sem alteração recursiva dos bancos existentes. Se a preparação automática falhar, a instalação só continua em modo manual após confirmação explícita.
+
 ## Decisoes seguras do instalador
 
 ### Porta e acesso pela rede

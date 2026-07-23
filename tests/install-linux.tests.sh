@@ -67,6 +67,13 @@ grep -Fq 'MYSQL_PWD="$MYSQL_ADMIN_PASSWORD" mysql' "$ROOT/install.sh"
 grep -q 'Foi encontrada uma pasta residual não registrada pelo banco' "$ROOT/install.sh"
 grep -Fq '/var/backups/central-incidentes' "$ROOT/install.sh"
 grep -q 'archive_orphan_database_dir' "$ROOT/install.sh"
+grep -q 'Corrigir somente a pasta principal' "$ROOT/install.sh"
+grep -q 'Permissão da pasta principal do banco corrigida sem alterar seu conteúdo' "$ROOT/install.sh"
+if grep -Eq 'chown .*(-R|--recursive).*DB_DATA_DIR' "$ROOT/install.sh"; then
+    printf 'Falha: o instalador não pode alterar recursivamente o diretório do banco.\n' >&2
+    exit 1
+fi
+grep -q 'Continuar sem banco preparado e informar credenciais no wizard' "$ROOT/install.sh"
 
 MINT_20_OS_RELEASE="$TEMP_ROOT/mint-20-os-release"
 printf 'ID=linuxmint\nVERSION_ID="20.3"\nPRETTY_NAME="Linux Mint 20.3"\n' > "$MINT_20_OS_RELEASE"
