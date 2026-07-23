@@ -62,6 +62,8 @@ O instalador apresenta as escolhas de porta, firewall, arquivos existentes e ban
 
 No Linux, o instalador valida os repositórios e simula a resolução das dependências antes de instalar pacotes. Ele interrompe a operação quando encontra uma assinatura inválida, chave pública ausente ou dependências inconsistentes, sem desativar fontes externas nem remover pacotes automaticamente.
 
+Se MySQL ou MariaDB já estiver instalado, o servidor existente é preservado e reutilizado. O instalador nunca troca automaticamente MySQL por MariaDB e executa o APT com remoções de pacotes bloqueadas.
+
 ## Decisoes seguras do instalador
 
 ### Porta e acesso pela rede

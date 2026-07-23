@@ -48,6 +48,20 @@ if CENTRAL_INCIDENTES_TEST_APT_UPDATE_OUTPUT='W: GPG error: https://example.inva
 fi
 assert_missing "$INSTALL_DIR"
 
+if CENTRAL_INCIDENTES_TEST_APT_UPDATE_OUTPUT='Hit: repositories available' \
+    CENTRAL_INCIDENTES_TEST_APT_SIMULATION_OUTPUT=$'The following packages will be REMOVED:\n  mysql-server\nRemv mysql-server [8.0]' \
+    run_installer >"$TEMP_ROOT/package-removal.log" 2>&1; then
+    printf 'Falha: uma simulação com remoção de pacotes deveria ser recusada.\n' >&2
+    exit 1
+fi
+grep -q 'exigiria remover pacotes existentes' "$TEMP_ROOT/package-removal.log"
+assert_missing "$INSTALL_DIR"
+
+if grep -Fq '`$DB_NAME`' "$ROOT/install.sh"; then
+    printf 'Falha: o identificador do banco não pode executar substituição de comando no shell.\n' >&2
+    exit 1
+fi
+
 MINT_20_OS_RELEASE="$TEMP_ROOT/mint-20-os-release"
 printf 'ID=linuxmint\nVERSION_ID="20.3"\nPRETTY_NAME="Linux Mint 20.3"\n' > "$MINT_20_OS_RELEASE"
 if CENTRAL_INCIDENTES_TEST_VALIDATE_OS=1 \
