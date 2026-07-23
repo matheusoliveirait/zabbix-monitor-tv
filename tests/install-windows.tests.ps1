@@ -74,6 +74,7 @@ DocumentRoot "$($documentRoot.Replace('\', '/'))"
     )
     Assert-True ($setupDefinition -match "'token_hash' => '[a-f0-9]{64}'") "hash do codigo salvo"
     Assert-True ($setupDefinition -match "'expires_at' => \d{10}") "expiracao salva"
+    Assert-True ($setupDefinition -match "'database_notice' =>") "motivo do banco manual salvo"
 
     & powershell.exe `
         -NoProfile `
@@ -86,6 +87,62 @@ DocumentRoot "$($documentRoot.Replace('\', '/'))"
         -TestMode 2>$null
     Assert-True ($LASTEXITCODE -ne 0) "reinstalacao sobre pasta preenchida deveria falhar"
     Assert-True (Test-Path (Join-Path $installDirectory "index.php")) "falha nao remove instalacao existente"
+
+    $appConfig = Join-Path $installDirectory "config\app.php"
+    $installLock = Join-Path $installDirectory "config\installed.lock"
+    $obsoleteFile = Join-Path $installDirectory "obsolete.txt"
+    [IO.File]::WriteAllText($appConfig, "<?php return ['marker' => 'preserved'];")
+    [IO.File]::WriteAllText($installLock, "installed")
+    [IO.File]::WriteAllText($obsoleteFile, "remove-on-update")
+    Remove-Item -LiteralPath (Join-Path $installDirectory "config\setup.php") -Force
+
+    & powershell.exe `
+        -NoProfile `
+        -ExecutionPolicy Bypass `
+        -File $installer `
+        -ApacheRoot $apacheRoot `
+        -InstallDir $installDirectory `
+        -Source $repositoryRoot `
+        -Port $configuredPort `
+        -ServerName "invalid/name" `
+        -Replace `
+        -TestMode 2>$null
+    Assert-True ($LASTEXITCODE -ne 0) "falha durante substituicao deveria restaurar a instalacao"
+    Assert-True ((Get-Content -LiteralPath $appConfig -Raw) -match "preserved") "rollback preservou app.php"
+    Assert-True (Test-Path -LiteralPath $installLock) "rollback preservou installed.lock"
+
+    & powershell.exe `
+        -NoProfile `
+        -ExecutionPolicy Bypass `
+        -File $installer `
+        -ApacheRoot $apacheRoot `
+        -InstallDir $installDirectory `
+        -Source $repositoryRoot `
+        -Port $configuredPort `
+        -ServerName "localhost" `
+        -Update `
+        -TestMode
+    Assert-True ($LASTEXITCODE -eq 0) "atualizacao simulada deveria concluir"
+    Assert-True ((Get-Content -LiteralPath $appConfig -Raw) -match "preserved") "update preservou app.php"
+    Assert-True (Test-Path -LiteralPath $installLock) "update preservou installed.lock"
+    Assert-True (-not (Test-Path -LiteralPath $obsoleteFile)) "update removeu arquivo obsoleto"
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $installDirectory "config\setup.php"))) "update nao reabriu wizard"
+
+    & powershell.exe `
+        -NoProfile `
+        -ExecutionPolicy Bypass `
+        -File $installer `
+        -ApacheRoot $apacheRoot `
+        -InstallDir $installDirectory `
+        -Source $repositoryRoot `
+        -Port $configuredPort `
+        -ServerName "localhost" `
+        -Replace `
+        -TestMode
+    Assert-True ($LASTEXITCODE -eq 0) "reinstalacao explicita deveria concluir"
+    Assert-True (-not (Test-Path -LiteralPath $appConfig)) "replace removeu configuracao anterior"
+    Assert-True (-not (Test-Path -LiteralPath $installLock)) "replace removeu lock anterior"
+    Assert-True (Test-Path -LiteralPath (Join-Path $installDirectory "config\setup.php")) "replace criou novo wizard"
 
     $occupiedListener = New-Object Net.Sockets.TcpListener([Net.IPAddress]::Loopback, 0)
     $occupiedListener.Start()
@@ -114,3 +171,5 @@ DocumentRoot "$($documentRoot.Replace('\', '/'))"
         Remove-Item -LiteralPath $temporaryRoot -Recurse -Force
     }
 }
+
+exit 0

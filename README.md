@@ -46,7 +46,7 @@ Os comandos abaixo baixam o instalador oficial da release mais recente e iniciam
 Cole esta linha no terminal:
 
 ```bash
-wget -qO /tmp/central-incidentes-install.sh https://github.com/matheusoliveirait/zabbix-monitor-tv/releases/latest/download/install.sh && sudo bash /tmp/central-incidentes-install.sh
+(arquivo=$(mktemp) && trap 'rm -f "$arquivo"' EXIT && wget -qO "$arquivo" https://github.com/matheusoliveirait/zabbix-monitor-tv/releases/latest/download/install.sh && sudo bash "$arquivo")
 ```
 
 ### Windows com Apache ou XAMPP
@@ -54,10 +54,56 @@ wget -qO /tmp/central-incidentes-install.sh https://github.com/matheusoliveirait
 Abra o PowerShell, preferencialmente como administrador, e cole esta linha:
 
 ```powershell
-& { $ErrorActionPreference = 'Stop'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $arquivo = Join-Path $env:TEMP 'central-incidentes-install.ps1'; Invoke-WebRequest 'https://github.com/matheusoliveirait/zabbix-monitor-tv/releases/latest/download/install-windows.ps1' -UseBasicParsing -OutFile $arquivo; powershell -NoProfile -ExecutionPolicy Bypass -File $arquivo }
+& { $ErrorActionPreference = 'Stop'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $arquivo = Join-Path $env:TEMP ("central-incidentes-" + [guid]::NewGuid().ToString("N") + ".ps1"); try { Invoke-WebRequest 'https://github.com/matheusoliveirait/zabbix-monitor-tv/releases/latest/download/install-windows.ps1' -UseBasicParsing -OutFile $arquivo; powershell -NoProfile -ExecutionPolicy Bypass -File $arquivo } finally { Remove-Item $arquivo -Force -ErrorAction SilentlyContinue } }
 ```
 
-O instalador nao substitui uma instalacao existente. Se as portas `80`, `8080`, `8081` e `8888` estiverem ocupadas, ele interrompe sem alterar o servidor e informa como escolher outra.
+O instalador apresenta as escolhas de porta, firewall, arquivos existentes e banco antes de realizar alteracoes.
+
+## Decisoes seguras do instalador
+
+### Porta e acesso pela rede
+
+Quando nenhuma porta e informada, o instalador procura uma opcao disponivel entre `80`, `8080`, `8081` e `8888`. Em modo interativo, a porta encontrada pode ser aceita ou substituida.
+
+A liberacao no firewall e opcional e vem desativada por padrao:
+
+- No Windows, a regra permite somente o Apache, a sub-rede local e os perfis `Domain` e `Private`.
+- No Linux, o instalador limita a regra a rede local detectada quando UFW esta ativo; com firewalld, utiliza a zona ativa.
+- Se nenhum firewall compativel estiver ativo, o instalador informa que nenhuma regra foi alterada.
+
+### Pasta de instalacao existente
+
+Quando a pasta ja contem o painel, o instalador oferece:
+
+1. **Atualizar arquivos:** preserva `config/app.php`, `config/installed.lock` e todo o banco.
+2. **Reinstalar arquivos:** substitui o aplicativo e abre um novo wizard; o banco e tratado separadamente.
+3. **Cancelar:** encerra sem alterar os arquivos.
+
+Durante atualizacoes e reinstalacoes, os arquivos anteriores ficam em uma area temporaria. Se a operacao falhar, eles sao restaurados automaticamente.
+
+Para automacao sem perguntas:
+
+```bash
+sudo ./install.sh --update --non-interactive
+sudo ./install.sh --replace --non-interactive
+```
+
+```powershell
+.\install-windows.ps1 -Update -NonInteractive
+.\install-windows.ps1 -Replace -NonInteractive
+```
+
+### Banco existente
+
+O instalador nunca altera silenciosamente a senha de um usuario de banco existente. Quando encontra o banco ou o usuario configurado, oferece:
+
+1. Manter os dados e informar as credenciais no wizard.
+2. Excluir o banco e o usuario para criar uma instalacao limpa.
+3. Cancelar.
+
+A exclusao exige digitar `EXCLUIR`. Ela apaga permanentemente as tabelas do banco selecionado. Em automacoes, essa escolha precisa ser explicita com `--reset-database` no Linux ou `-ResetDatabase` no Windows.
+
+No passo 3 do wizard, **Usuario** e **Senha** sao credenciais do MySQL/MariaDB com acesso ao banco indicado. Nao sao o login do Zabbix nem a conta administrativa do painel. Em um XAMPP novo, `root` geralmente comeca sem senha, mas uma conta dedicada e recomendada.
 
 ## Instalacao manual assistida
 
@@ -78,7 +124,7 @@ Ele prepara PHP, MariaDB, Apache ou Nginx, instala os arquivos e apresenta a URL
 Servidor preparado com sucesso.
 
   Acesse:  http://192.168.1.50/setup/
-  Codigo:  A1B2-C3D4
+  Codigo:  A1B2-C3D4-E5F6-G7H8
 ```
 
 O codigo expira em duas horas. No navegador, o assistente valida o ambiente, prepara as tabelas, cria o administrador, testa o Zabbix e bloqueia o instalador.
@@ -93,7 +139,7 @@ sudo ./install.sh --apache --port 8090 --non-interactive
 
 Quando nenhuma porta e informada, o instalador procura uma porta livre nesta ordem: `80`, `8080`, `8081` e `8888`. Uma porta especifica pode ser escolhida com `--port`; se estiver ocupada, a instalacao e interrompida sem alterar o servico existente. A porta `443` deve ser configurada depois com HTTPS e certificado em um proxy reverso.
 
-Use `--help` para consultar dominio, diretorio, versao, porta e banco externo. O script inicial nao sobrescreve instalacoes existentes.
+Use `--help` para consultar dominio, diretorio, versao, porta, atualizacao, firewall e banco.
 
 ### Windows com Apache ou XAMPP
 
@@ -108,7 +154,7 @@ Get-Content .\install-windows.ps1
 powershell -ExecutionPolicy Bypass -File .\install-windows.ps1
 ```
 
-O script localiza Apache, `DocumentRoot`, PHP e MySQL, preserva a porta que ja pertence ao Apache ou escolhe uma porta livre entre `80`, `8080`, `8081` e `8888`. Antes de reiniciar, valida o `httpd.conf` e testa o wizard por HTTP. Em caso de falha, restaura a configuracao e remove somente os arquivos criados naquela execucao.
+O script localiza Apache, `DocumentRoot`, PHP e MySQL, preserva a porta que ja pertence ao Apache ou escolhe uma porta livre entre `80`, `8080`, `8081` e `8888`. Antes de reiniciar, valida o `httpd.conf` e testa o wizard por HTTP. Em caso de falha, restaura a configuracao e os arquivos anteriores.
 
 Para informar caminhos ou porta manualmente:
 
@@ -122,7 +168,7 @@ Para informar caminhos ou porta manualmente:
 
 O Windows precisa ter Apache com PHP 8.1+ e MySQL/MariaDB. Quando o banco local nao pode ser preparado automaticamente, o wizard solicita as credenciais sem interromper a instalacao.
 
-A regra de entrada no Firewall do Windows so e criada quando `-OpenFirewall` e informado e o PowerShell esta sendo executado como administrador.
+A regra de entrada no Firewall do Windows pode ser autorizada durante a instalacao ou com `-OpenFirewall`. A criacao exige PowerShell como administrador e limita o acesso a rede local nos perfis `Domain` e `Private`.
 
 Para verificar o ambiente sem copiar arquivos ou reiniciar servicos:
 

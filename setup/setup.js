@@ -7,6 +7,7 @@ const setupState = document.getElementById("setupState");
 const requirementList = document.getElementById("requirementList");
 const requirementsContinue = document.getElementById("requirementsContinue");
 const preparedDatabase = document.getElementById("preparedDatabase");
+const preparedDatabaseNotice = document.getElementById("preparedDatabaseNotice");
 const customDatabase = document.getElementById("customDatabase");
 const zabbixSummary = document.getElementById("zabbixSummary");
 const stepOrder = ["unlock", "requirements", "database", "admin", "zabbix", "finish"];
@@ -128,6 +129,9 @@ function renderRequirements(requirements) {
 function renderPreparedDatabase(prepared) {
   const available = Boolean(prepared?.available);
   document.querySelector('[data-db-mode="prepared"]').disabled = !available;
+  const notice = String(prepared?.notice || "").trim();
+  preparedDatabaseNotice.textContent = notice;
+  preparedDatabaseNotice.hidden = !notice;
 
   if (!available) {
     setDatabaseMode("custom");

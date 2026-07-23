@@ -303,13 +303,18 @@ function setup_public_status(): array
 
     $status['expiresAt'] = (int)($definition['expires_at'] ?? 0);
     $preparedDb = is_array($definition['prepared_db'] ?? null) ? $definition['prepared_db'] : [];
+    $databaseNotice = trim((string)($definition['database_notice'] ?? ''));
     $status['preparedDatabase'] = $preparedDb ? [
         'available' => true,
         'host' => (string)($preparedDb['host'] ?? '127.0.0.1'),
         'port' => (int)($preparedDb['port'] ?? 3306),
         'database' => (string)($preparedDb['database'] ?? ''),
         'username' => (string)($preparedDb['username'] ?? ''),
-    ] : ['available' => false];
+        'notice' => $databaseNotice,
+    ] : [
+        'available' => false,
+        'notice' => $databaseNotice ?: 'O instalador não preparou uma conta de banco. Use Banco existente.',
+    ];
 
     $status['appConfigured'] = is_file(app_file());
     $status['adminCreated'] = false;
@@ -347,6 +352,11 @@ try {
     $action = (string)($input['action'] ?? '');
 
     if ($action === 'unlock') {
+        $blockedUntil = (int)($_SESSION['setup_blocked_until'] ?? 0);
+        if ($blockedUntil > time()) {
+            setup_error('Muitas tentativas inválidas. Aguarde alguns segundos e tente novamente.', 429);
+        }
+
         $definition = setup_definition();
         if (!$definition) {
             setup_error('Execute o instalador no servidor antes de continuar.', 409);
@@ -355,21 +365,23 @@ try {
             setup_error('O código temporário expirou. Execute novamente o instalador.', 410);
         }
 
-        $attempts = (int)($_SESSION['setup_attempts'] ?? 0);
-        if ($attempts >= 8) {
-            setup_error('Muitas tentativas. Feche o navegador e execute novamente o instalador.', 429);
-        }
-
         $token = strtoupper(trim((string)($input['token'] ?? '')));
         $expected = (string)($definition['token_hash'] ?? '');
         if ($token === '' || $expected === '' || !hash_equals($expected, hash('sha256', $token))) {
-            $_SESSION['setup_attempts'] = $attempts + 1;
+            usleep(250000);
+            $attempts = (int)($_SESSION['setup_attempts'] ?? 0) + 1;
+            if ($attempts >= 5) {
+                $_SESSION['setup_attempts'] = 0;
+                $_SESSION['setup_blocked_until'] = time() + 30;
+            } else {
+                $_SESSION['setup_attempts'] = $attempts;
+            }
             setup_error('Código temporário inválido.', 401);
         }
 
         session_regenerate_id(true);
         $_SESSION['setup_unlocked'] = true;
-        $_SESSION['setup_attempts'] = 0;
+        unset($_SESSION['setup_attempts'], $_SESSION['setup_blocked_until']);
         $_SESSION['setup_csrf'] = bin2hex(random_bytes(24));
         setup_response(setup_public_status());
     }
