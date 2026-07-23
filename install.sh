@@ -15,8 +15,20 @@ CONFIGURE_LOCAL_DB="${CENTRAL_INCIDENTES_LOCAL_DB:-1}"
 DB_NAME="${CENTRAL_INCIDENTES_DB_NAME:-central_incidentes}"
 DB_USER="${CENTRAL_INCIDENTES_DB_USER:-central_incidentes}"
 WORK_DIR=""
+POLICY_RC_CREATED=0
 
 [[ -n "$PORT" ]] && PORT_EXPLICIT=1
+
+cleanup() {
+    if [[ "$POLICY_RC_CREATED" == "1" ]]; then
+        rm -f /usr/sbin/policy-rc.d
+    fi
+    if [[ -n "${WORK_DIR:-}" ]]; then
+        rm -rf -- "$WORK_DIR"
+    fi
+}
+
+trap cleanup EXIT
 
 info() {
     printf '\033[1;36m%s\033[0m\n' "$1"
@@ -165,13 +177,26 @@ else
 fi
 
 info "Instalando dependências..."
+
+# Evita que um servidor recém-instalado tente ocupar a porta 80 antes
+# de receber a configuração com a porta livre selecionada acima.
+if [[ ! -e /usr/sbin/policy-rc.d ]]; then
+    printf '#!/bin/sh\nexit 101\n' > /usr/sbin/policy-rc.d
+    chmod 0755 /usr/sbin/policy-rc.d
+    POLICY_RC_CREATED=1
+fi
+
 apt-get install -y -qq "${COMMON_PACKAGES[@]}"
+
+if [[ "$POLICY_RC_CREATED" == "1" ]]; then
+    rm -f /usr/sbin/policy-rc.d
+    POLICY_RC_CREATED=0
+fi
 
 PHP_VERSION_ID=$(php -r 'echo PHP_VERSION_ID;')
 ((PHP_VERSION_ID >= 80100)) || fail "PHP 8.1 ou superior é obrigatório."
 
 WORK_DIR=$(mktemp -d)
-trap '[[ -n "${WORK_DIR:-}" ]] && rm -rf -- "$WORK_DIR"' EXIT
 STAGING="$WORK_DIR/app"
 mkdir -p "$STAGING"
 
