@@ -67,6 +67,7 @@ grep -Fq 'MYSQL_PWD="$MYSQL_ADMIN_PASSWORD" mysql' "$ROOT/install.sh"
 grep -q 'Foi encontrada uma pasta residual não registrada pelo banco' "$ROOT/install.sh"
 grep -Fq '/var/backups/central-incidentes' "$ROOT/install.sh"
 grep -q 'archive_orphan_database_dir' "$ROOT/install.sh"
+grep -Fq '[[ "$ORPHAN_DB_DIR" == "1" ]] || return 0' "$ROOT/install.sh"
 grep -q 'Corrigir somente a pasta principal' "$ROOT/install.sh"
 grep -q 'Permissão da pasta principal do banco corrigida sem alterar seu conteúdo' "$ROOT/install.sh"
 if grep -Eq 'chown .*(-R|--recursive).*DB_DATA_DIR' "$ROOT/install.sh"; then

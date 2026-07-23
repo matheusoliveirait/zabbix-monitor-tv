@@ -788,7 +788,7 @@ confirm_database_reset() {
 }
 
 archive_orphan_database_dir() {
-    [[ "$ORPHAN_DB_DIR" == "1" ]] || return
+    [[ "$ORPHAN_DB_DIR" == "1" ]] || return 0
     [[ -n "$DB_DATA_DIR" && "$DB_DATA_DIR" != "/" ]] \
         || fail "O diretório de dados do banco não é seguro para arquivamento automático."
     [[ "$DB_SCHEMA_PATH" == "$DB_DATA_DIR/"* ]] \
@@ -849,8 +849,8 @@ SQL
 }
 
 repair_database_security_controls() {
-    [[ -n "${DB_CREATE_ERROR_FILE:-}" && -f "$DB_CREATE_ERROR_FILE" ]] || return
-    grep -Eqi 'errno: 13|permission denied' "$DB_CREATE_ERROR_FILE" || return
+    [[ -n "${DB_CREATE_ERROR_FILE:-}" && -f "$DB_CREATE_ERROR_FILE" ]] || return 0
+    grep -Eqi 'errno: 13|permission denied' "$DB_CREATE_ERROR_FILE" || return 0
 
     warn "O usuário root administra a instalação, mas o servidor do banco roda com permissões próprias."
 
@@ -863,9 +863,9 @@ repair_database_security_controls() {
         fi
     fi
 
-    command -v aa-status >/dev/null 2>&1 || return
-    aa-status --enabled >/dev/null 2>&1 || return
-    command -v apparmor_parser >/dev/null 2>&1 || return
+    command -v aa-status >/dev/null 2>&1 || return 0
+    aa-status --enabled >/dev/null 2>&1 || return 0
+    command -v apparmor_parser >/dev/null 2>&1 || return 0
 
     local denial=""
     denial=$(
@@ -874,7 +874,7 @@ repair_database_security_controls() {
             | tail -n 1 \
             || true
     )
-    [[ -n "$denial" ]] || return
+    [[ -n "$denial" ]] || return 0
 
     local profile=""
     local candidate=""
@@ -887,13 +887,13 @@ repair_database_security_controls() {
     done
     if [[ -z "$profile" ]]; then
         warn "O AppArmor bloqueou o banco, mas nenhum perfil local compatível foi encontrado."
-        return
+        return 0
     fi
 
     warn "O AppArmor bloqueou o acesso do servidor a $DB_DATA_DIR."
     if [[ "$NON_INTERACTIVE" == "1" ]] \
         || ! ask_yes_no "Autorizar o perfil do banco a usar somente este diretório de dados?" "yes"; then
-        return
+        return 0
     fi
 
     local local_profile="/etc/apparmor.d/local/$(basename "$profile")"
