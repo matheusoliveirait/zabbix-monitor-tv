@@ -485,7 +485,7 @@ if [[ "$NON_INTERACTIVE" != "1" ]]; then
 
     if [[ "$INSTALL_ACTION" != "update" ]]; then
         if [[ -n "$LOCAL_DB_SERVICE" ]]; then
-            printf 'Usar o %s existente para preparar o banco do painel? [S/n]: ' "$LOCAL_DB_LABEL"
+            printf 'Preparar o banco do painel usando o %s existente? [S/n]: ' "$LOCAL_DB_LABEL"
         else
             printf 'Preparar um banco MariaDB local automaticamente? [S/n]: '
         fi
@@ -680,18 +680,50 @@ else
     install -d -o www-data -g www-data -m 0750 "$INSTALL_DIR/config"
 fi
 
-DB_PASSWORD=""
-DB_PREPARED=0
-if [[ "$INSTALL_ACTION" != "update" && "$CONFIGURE_LOCAL_DB" == "1" ]]; then
-    if ! systemctl enable --now "$LOCAL_DB_SERVICE" >/dev/null; then
-        DB_NOTICE="Não foi possível iniciar o $LOCAL_DB_LABEL. Use Banco existente e informe credenciais válidas."
-        warn "$DB_NOTICE"
-    elif EXISTING_STATE=$(mysql --protocol=socket -uroot --batch --skip-column-names \
+MYSQL_ADMIN_PASSWORD=""
+run_mysql_admin() {
+    if [[ -n "$MYSQL_ADMIN_PASSWORD" ]]; then
+        MYSQL_PWD="$MYSQL_ADMIN_PASSWORD" mysql --protocol=socket -uroot "$@"
+    else
+        env -u MYSQL_PWD mysql --protocol=socket -uroot "$@"
+    fi
+}
+
+read_database_state() {
+    run_mysql_admin --batch --skip-column-names \
         --execute="SELECT CONCAT(
             (SELECT COUNT(*) FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = '$DB_NAME'),
             ':',
             (SELECT COUNT(*) FROM mysql.user WHERE User = '$DB_USER' AND Host IN ('localhost', '127.0.0.1'))
-        );" 2>/dev/null); then
+        );"
+}
+
+DB_PASSWORD=""
+DB_PREPARED=0
+if [[ "$INSTALL_ACTION" != "update" && "$CONFIGURE_LOCAL_DB" == "1" ]]; then
+    DB_ADMIN_READY=0
+    if ! systemctl enable --now "$LOCAL_DB_SERVICE" >/dev/null; then
+        DB_NOTICE="Não foi possível iniciar o $LOCAL_DB_LABEL. Use Banco existente e informe credenciais válidas."
+        warn "$DB_NOTICE"
+    elif EXISTING_STATE=$(read_database_state 2>/dev/null); then
+        DB_ADMIN_READY=1
+    elif [[ "$NON_INTERACTIVE" != "1" ]]; then
+        printf 'Senha do usuário root do %s (não será armazenada): ' "$LOCAL_DB_LABEL"
+        IFS= read -r -s MYSQL_ADMIN_PASSWORD
+        printf '\n'
+        if EXISTING_STATE=$(read_database_state 2>/dev/null); then
+            DB_ADMIN_READY=1
+        else
+            MYSQL_ADMIN_PASSWORD=""
+            DB_NOTICE="Não foi possível administrar o $LOCAL_DB_LABEL. Use Banco existente e informe credenciais válidas."
+            warn "$DB_NOTICE"
+        fi
+    else
+        DB_NOTICE="O acesso administrativo ao $LOCAL_DB_LABEL foi recusado. Use Banco existente e informe credenciais válidas."
+        warn "$DB_NOTICE"
+    fi
+
+    if [[ "$DB_ADMIN_READY" == "1" ]]; then
         SHOULD_CREATE=1
         if [[ "$EXISTING_STATE" != "0:0" && "$RESET_DATABASE" == "1" \
             && "$NON_INTERACTIVE" != "1" ]]; then
@@ -705,13 +737,13 @@ if [[ "$INSTALL_ACTION" != "update" && "$CONFIGURE_LOCAL_DB" == "1" ]]; then
         if [[ "$EXISTING_STATE" != "0:0" && "$RESET_DATABASE" != "1" ]]; then
             if [[ "$NON_INTERACTIVE" == "1" ]]; then
                 SHOULD_CREATE=0
-                DB_NOTICE="O banco ou usuário $DB_NAME já existe. Use Banco existente ou execute novamente com --reset-database para apagar esses dados."
+                DB_NOTICE="O banco ou usuário $DB_NAME já existe. Use Banco existente ou execute novamente com --reset-database para recriar somente o banco do painel."
                 warn "$DB_NOTICE"
             else
                 printf '\n'
                 warn "O banco ou usuário '$DB_NAME' já existe."
-                printf '  [1] Manter os dados e informar as credenciais no wizard (recomendado)\n'
-                printf '  [2] Excluir o banco e o usuário para criar uma instalação limpa\n'
+                printf '  [1] Preservar o banco do painel e informar suas credenciais no wizard\n'
+                printf '  [2] Excluir e recriar somente o banco e o usuário do painel\n'
                 printf '  [3] Cancelar\n'
                 printf 'Escolha uma opção [1]: '
                 read -r choice
@@ -736,8 +768,8 @@ if [[ "$INSTALL_ACTION" != "update" && "$CONFIGURE_LOCAL_DB" == "1" ]]; then
 
         if [[ "$SHOULD_CREATE" == "1" ]]; then
             if [[ "$RESET_DATABASE" == "1" ]]; then
-                info "Excluindo somente o banco e o usuário confirmados..."
-                mysql --protocol=socket -uroot <<SQL
+                info "Excluindo somente o banco e o usuário do painel confirmados..."
+                run_mysql_admin <<SQL
 DROP DATABASE IF EXISTS $DB_NAME;
 DROP USER IF EXISTS '$DB_USER'@'localhost';
 DROP USER IF EXISTS '$DB_USER'@'127.0.0.1';
@@ -747,7 +779,7 @@ SQL
 
             DB_PASSWORD=$(openssl rand -hex 24)
             info "Criando banco e usuário exclusivos..."
-            if mysql --protocol=socket -uroot <<SQL
+            if run_mysql_admin <<SQL
 CREATE DATABASE $DB_NAME CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASSWORD';
 CREATE USER '$DB_USER'@'127.0.0.1' IDENTIFIED BY '$DB_PASSWORD';
@@ -763,13 +795,12 @@ SQL
                 warn "$DB_NOTICE"
             fi
         fi
-    else
-        DB_NOTICE="O acesso administrativo ao $LOCAL_DB_LABEL foi recusado. Use Banco existente e informe um usuário do MySQL ou MariaDB."
-        warn "$DB_NOTICE"
     fi
 elif [[ "$INSTALL_ACTION" != "update" ]]; then
     DB_NOTICE="O banco automático não foi solicitado. Use Banco existente e informe uma conexão MySQL ou MariaDB."
 fi
+MYSQL_ADMIN_PASSWORD=""
+unset MYSQL_PWD
 
 SETUP_TOKEN=""
 if [[ "$INSTALL_ACTION" != "update" ]]; then

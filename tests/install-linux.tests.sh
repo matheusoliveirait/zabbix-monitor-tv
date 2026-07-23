@@ -61,6 +61,9 @@ if grep -Fq '`$DB_NAME`' "$ROOT/install.sh"; then
     printf 'Falha: o identificador do banco não pode executar substituição de comando no shell.\n' >&2
     exit 1
 fi
+grep -q 'Senha do usuário root do %s (não será armazenada)' "$ROOT/install.sh"
+grep -q 'Excluir e recriar somente o banco e o usuário do painel' "$ROOT/install.sh"
+grep -Fq 'MYSQL_PWD="$MYSQL_ADMIN_PASSWORD" mysql' "$ROOT/install.sh"
 
 MINT_20_OS_RELEASE="$TEMP_ROOT/mint-20-os-release"
 printf 'ID=linuxmint\nVERSION_ID="20.3"\nPRETTY_NAME="Linux Mint 20.3"\n' > "$MINT_20_OS_RELEASE"
