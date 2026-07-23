@@ -4,8 +4,19 @@
 .SYNOPSIS
 Prepara a Central de Incidentes em um Apache existente ou no XAMPP.
 
+.DESCRIPTION
+Em modo interativo, permite escolher a porta, liberar o firewall apenas para a
+rede local, atualizar uma instalação existente ou reinstalar os arquivos. A
+opção -Update preserva config/app.php, installed.lock e o banco de dados.
+
 .EXAMPLE
-& { $ErrorActionPreference = 'Stop'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $arquivo = Join-Path $env:TEMP 'central-incidentes-install.ps1'; Invoke-WebRequest 'https://github.com/matheusoliveirait/zabbix-monitor-tv/releases/latest/download/install-windows.ps1' -UseBasicParsing -OutFile $arquivo; powershell -NoProfile -ExecutionPolicy Bypass -File $arquivo }
+& { $ErrorActionPreference = 'Stop'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $arquivo = Join-Path $env:TEMP ("central-incidentes-" + [guid]::NewGuid().ToString("N") + ".ps1"); try { Invoke-WebRequest 'https://github.com/matheusoliveirait/zabbix-monitor-tv/releases/latest/download/install-windows.ps1' -UseBasicParsing -OutFile $arquivo; powershell -NoProfile -ExecutionPolicy Bypass -File $arquivo } finally { Remove-Item $arquivo -Force -ErrorAction SilentlyContinue } }
+
+.EXAMPLE
+.\install-windows.ps1 -Update
+
+.EXAMPLE
+.\install-windows.ps1 -Replace -ResetDatabase
 #>
 
 [CmdletBinding()]
@@ -24,6 +35,9 @@ param(
     [switch]$SkipApacheRestart,
     [switch]$CheckOnly,
     [switch]$OpenFirewall,
+    [switch]$Update,
+    [switch]$Replace,
+    [switch]$ResetDatabase,
     [string]$DatabaseName = "central_incidentes",
     [string]$DatabaseUser = "central_incidentes",
     [switch]$TestMode
@@ -39,6 +53,9 @@ $script:CreatedInstallDirectory = $false
 $script:ApacheConfigBackup = $null
 $script:ApacheConfigPath = $null
 $script:ResolvedApacheRoot = $null
+$script:ExistingInstallBackup = $null
+$script:InstallMode = "Fresh"
+$script:DatabaseNotice = ""
 
 function Write-Info([string]$Message) {
     Write-Host $Message -ForegroundColor Cyan
@@ -54,6 +71,15 @@ function Write-WarningMessage([string]$Message) {
 
 function Stop-Installer([string]$Message) {
     throw $Message
+}
+
+function Read-YesNo([string]$Message, [bool]$Default = $false) {
+    $suffix = if ($Default) { "[S/n]" } else { "[s/N]" }
+    $answer = (Read-Host "$Message $suffix").Trim()
+    if (-not $answer) {
+        return $Default
+    }
+    return $answer -match '^[SsYy]'
 }
 
 function Test-IsAdministrator {
@@ -287,6 +313,53 @@ function Select-HttpPort(
     Stop-Installer "As portas 80, 8080, 8081 e 8888 estao ocupadas. Informe outra com -Port."
 }
 
+function Confirm-HttpPort(
+    [hashtable]$Selection,
+    [int[]]$ConfiguredPorts,
+    [int[]]$ApacheProcessIds
+) {
+    if ($NonInteractive -or $TestMode -or $CheckOnly -or $Port -gt 0) {
+        return $Selection
+    }
+
+    if (Read-YesNo "Usar a porta HTTP $($Selection.Port)?" $true) {
+        return $Selection
+    }
+
+    while ($true) {
+        $answer = (Read-Host "Informe outra porta HTTP").Trim()
+        $customPort = 0
+        if (-not [int]::TryParse($answer, [ref]$customPort) -or
+            $customPort -lt 1 -or $customPort -gt 65535) {
+            Write-WarningMessage "Informe um numero entre 1 e 65535."
+            continue
+        }
+
+        try {
+            return Select-HttpPort $customPort $ConfiguredPorts $ApacheProcessIds
+        } catch {
+            Write-WarningMessage $_.Exception.Message
+        }
+    }
+}
+
+function Resolve-FirewallChoice([int]$SelectedPort) {
+    if ($TestMode -or $CheckOnly) {
+        return $false
+    }
+    if ($OpenFirewall) {
+        return $true
+    }
+    if ($NonInteractive) {
+        return $false
+    }
+
+    Write-Host ""
+    Write-Host "O painel ja funcionara neste computador pela porta $SelectedPort."
+    Write-Host "A liberacao abaixo permite acesso por outros dispositivos da rede local."
+    return Read-YesNo "Liberar esta porta no Firewall do Windows?" $false
+}
+
 function Add-ApacheListenPort(
     [hashtable]$ApacheConfiguration,
     [int]$SelectedPort
@@ -481,13 +554,17 @@ function Test-SetupEndpoint([string]$Url) {
     Stop-Installer "O Apache iniciou, mas o wizard nao respondeu corretamente em $Url."
 }
 
-function Set-PanelFirewallRule([int]$SelectedPort) {
+function Set-PanelFirewallRule(
+    [int]$SelectedPort,
+    [string]$HttpdPath,
+    [bool]$Requested
+) {
     if ($TestMode) {
         return
     }
 
-    if (-not $OpenFirewall) {
-        Write-WarningMessage "Para acesso pela rede, confirme se a porta $SelectedPort esta liberada no Firewall do Windows."
+    if (-not $Requested) {
+        Write-Info "Firewall mantido sem alteracoes. O acesso local continua disponivel."
         return
     }
 
@@ -498,17 +575,39 @@ function Set-PanelFirewallRule([int]$SelectedPort) {
 
     $displayName = "Central de Incidentes (TCP $SelectedPort)"
     $existing = Get-NetFirewallRule -DisplayName $displayName -ErrorAction SilentlyContinue
-    if (-not $existing) {
+    if ($existing) {
+        $existing | Set-NetFirewallRule `
+            -Direction Inbound `
+            -Action Allow `
+            -Profile Domain, Private `
+            -Enabled True | Out-Null
+        $existing | Get-NetFirewallPortFilter | Set-NetFirewallPortFilter `
+            -Protocol TCP `
+            -LocalPort $SelectedPort | Out-Null
+        $existing | Get-NetFirewallApplicationFilter | Set-NetFirewallApplicationFilter `
+            -Program $HttpdPath | Out-Null
+        $existing | Get-NetFirewallAddressFilter | Set-NetFirewallAddressFilter `
+            -RemoteAddress LocalSubnet | Out-Null
+    } else {
         New-NetFirewallRule `
             -DisplayName $displayName `
             -Direction Inbound `
             -Action Allow `
             -Protocol TCP `
-            -LocalPort $SelectedPort | Out-Null
+            -LocalPort $SelectedPort `
+            -Program $HttpdPath `
+            -Profile Domain, Private `
+            -RemoteAddress LocalSubnet | Out-Null
     }
+    Write-Success "Porta $SelectedPort liberada somente para a rede local nos perfis Domain e Private."
 }
 
 function New-TemporaryDirectory {
+    if ($script:TemporaryDirectory -and
+        (Test-Path -LiteralPath $script:TemporaryDirectory)) {
+        return $script:TemporaryDirectory
+    }
+
     $path = Join-Path ([IO.Path]::GetTempPath()) (
         "central-incidentes-" + [Guid]::NewGuid().ToString("N")
     )
@@ -536,6 +635,117 @@ function Copy-ProjectFiles([string]$From, [string]$Destination) {
         $path = Join-Path $Destination $localConfig
         if (Test-Path -LiteralPath $path) {
             Remove-Item -LiteralPath $path -Force
+        }
+    }
+}
+
+function Resolve-InstallMode([string]$Destination) {
+    if ($Update -and $Replace) {
+        Stop-Installer "Use apenas uma opcao: -Update ou -Replace."
+    }
+    if ($Update -and $ResetDatabase) {
+        Stop-Installer "-Update preserva o banco e nao pode ser combinado com -ResetDatabase."
+    }
+
+    if (-not (Test-Path -LiteralPath $Destination)) {
+        return "Fresh"
+    }
+
+    $reparsePoint = Get-Item -LiteralPath $Destination -Force
+    if (($reparsePoint.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+        Stop-Installer "A pasta de instalacao nao pode ser um link simbolico ou junction."
+    }
+    $nestedReparsePoint = Get-ChildItem -LiteralPath $Destination -Force -Recurse |
+        Where-Object {
+            ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0
+        } |
+        Select-Object -First 1
+    if ($nestedReparsePoint) {
+        Stop-Installer "A pasta contem um link simbolico ou junction e nao pode ser substituida com seguranca: $($nestedReparsePoint.FullName)"
+    }
+
+    $items = @(Get-ChildItem -LiteralPath $Destination -Force)
+    if ($items.Count -eq 0) {
+        return "Fresh"
+    }
+
+    $installed = (Test-Path -LiteralPath (Join-Path $Destination "config\app.php")) -or
+        (Test-Path -LiteralPath (Join-Path $Destination "config\installed.lock"))
+
+    if ($Update) {
+        if (-not $installed) {
+            Stop-Installer "A pasta existe, mas nao contem uma instalacao concluida para atualizar."
+        }
+        return "Update"
+    }
+    if ($Replace) {
+        return "Replace"
+    }
+    if ($NonInteractive -or $TestMode) {
+        Stop-Installer "A pasta $Destination nao esta vazia. Use -Update para preservar configuracao e banco ou -Replace para reinstalar os arquivos."
+    }
+
+    Write-Host ""
+    Write-WarningMessage "A pasta $Destination ja contem arquivos."
+    if ($installed) {
+        Write-Host "  [1] Atualizar arquivos e preservar configuracao e banco (recomendado)"
+        Write-Host "  [2] Reinstalar arquivos e abrir um novo wizard"
+        Write-Host "  [3] Cancelar"
+        $choice = (Read-Host "Escolha uma opcao [1]").Trim()
+        switch ($choice) {
+            { $_ -in @("", "1") } { return "Update" }
+            "2" {
+                if (Read-YesNo "Reinstalar os arquivos desta pasta?" $false) {
+                    return "Replace"
+                }
+                Stop-Installer "Reinstalacao cancelada."
+            }
+            default { Stop-Installer "Instalacao cancelada; nenhum arquivo foi alterado." }
+        }
+    }
+
+    Write-Host "  [1] Substituir o conteudo da pasta"
+    Write-Host "  [2] Cancelar"
+    $choice = (Read-Host "Escolha uma opcao [2]").Trim()
+    if ($choice -eq "1" -and
+        (Read-YesNo "Confirmar a substituicao dos arquivos?" $false)) {
+        return "Replace"
+    }
+    Stop-Installer "Instalacao cancelada; nenhum arquivo foi alterado."
+}
+
+function Install-ProjectFiles(
+    [string]$From,
+    [string]$Destination,
+    [string]$Mode
+) {
+    $temporary = New-TemporaryDirectory
+
+    if (Test-Path -LiteralPath $Destination) {
+        $items = @(Get-ChildItem -LiteralPath $Destination -Force)
+        if ($items.Count -eq 0) {
+            Remove-Item -LiteralPath $Destination -Force
+        } else {
+            $backup = Join-Path $temporary "previous-install"
+            Copy-Item -LiteralPath $Destination -Destination $backup -Recurse
+            $script:ExistingInstallBackup = $backup
+            Remove-Item -LiteralPath $Destination -Recurse -Force
+        }
+    }
+
+    Copy-ProjectFiles $From $Destination
+
+    if ($Mode -eq "Update") {
+        foreach ($localConfig in @("config\app.php", "config\installed.lock")) {
+            $saved = Join-Path $script:ExistingInstallBackup $localConfig
+            if (Test-Path -LiteralPath $saved) {
+                $target = Join-Path $Destination $localConfig
+                $targetDirectory = Split-Path -Parent $target
+                if (-not (Test-Path -LiteralPath $targetDirectory)) {
+                    New-Item -ItemType Directory -Path $targetDirectory | Out-Null
+                }
+                Copy-Item -LiteralPath $saved -Destination $target -Force
+            }
         }
     }
 }
@@ -687,7 +897,9 @@ function New-RandomHex([int]$ByteCount) {
 }
 
 function Prepare-LocalDatabase([string]$ResolvedApacheRoot) {
+    $script:DatabaseNotice = ""
     if ($NoLocalDb -or $TestMode) {
+        $script:DatabaseNotice = "O banco automatico nao foi solicitado. Informe uma conexao MySQL ou MariaDB existente."
         return $null
     }
 
@@ -698,13 +910,15 @@ function Prepare-LocalDatabase([string]$ResolvedApacheRoot) {
 
     $mysql = Find-MySqlClient $ResolvedApacheRoot
     if (-not $mysql) {
-        Write-WarningMessage "Cliente MySQL nao encontrado. O banco sera informado no wizard."
+        $script:DatabaseNotice = "O cliente MySQL nao foi encontrado. Use Banco existente e informe as credenciais do MySQL ou MariaDB."
+        Write-WarningMessage $script:DatabaseNotice
         return $null
     }
 
     if (-not (Test-TcpPort "127.0.0.1" 3306)) {
         if (-not (Start-XamppMySql $ResolvedApacheRoot)) {
-            Write-WarningMessage "MySQL nao esta acessivel. O banco sera informado no wizard."
+            $script:DatabaseNotice = "O MySQL nao esta acessivel. Inicie o servico e use Banco existente no wizard."
+            Write-WarningMessage $script:DatabaseNotice
             return $null
         }
     }
@@ -717,7 +931,8 @@ function Prepare-LocalDatabase([string]$ResolvedApacheRoot) {
     }
 
     if (-not $probe.Ok) {
-        Write-WarningMessage "Nao foi possivel preparar o banco como root. Use o modo personalizado no wizard."
+        $script:DatabaseNotice = "Nao foi possivel administrar o MySQL. Use Banco existente e informe um usuario do MySQL com acesso ao banco."
+        Write-WarningMessage $script:DatabaseNotice
         return $null
     }
 
@@ -729,9 +944,65 @@ SELECT CONCAT(
 );
 "@
     $existing = Invoke-MySql $mysql $existingSql $rootPassword
-    if (-not $existing.Ok -or $existing.Output.Trim() -ne "0:0") {
-        Write-WarningMessage "O banco ou usuario solicitado ja existe. Nada foi alterado; informe as credenciais no wizard."
+    if (-not $existing.Ok) {
+        $script:DatabaseNotice = "Nao foi possivel verificar o banco existente. Nenhum dado foi alterado."
+        Write-WarningMessage $script:DatabaseNotice
         return $null
+    }
+
+    $resetExisting = [bool]$ResetDatabase
+    if ($existing.Output.Trim() -ne "0:0" -and
+        $resetExisting -and
+        -not $NonInteractive) {
+        Write-Host ""
+        Write-Host "Esta acao apaga permanentemente todas as tabelas de '$DatabaseName'." -ForegroundColor Red
+        $confirmation = (Read-Host "Digite EXCLUIR para confirmar").Trim()
+        if ($confirmation -cne "EXCLUIR") {
+            Stop-Installer "Exclusao do banco cancelada; nenhum dado foi removido."
+        }
+    }
+
+    if ($existing.Output.Trim() -ne "0:0" -and -not $resetExisting) {
+        if ($NonInteractive) {
+            $script:DatabaseNotice = "O banco '$DatabaseName' ou o usuario '$DatabaseUser' ja existe. Use Banco existente ou execute novamente com -ResetDatabase para apagar esses dados."
+            Write-WarningMessage $script:DatabaseNotice
+            return $null
+        }
+
+        Write-Host ""
+        Write-WarningMessage "O banco ou usuario '$DatabaseName' ja existe."
+        Write-Host "  [1] Manter os dados e informar as credenciais no wizard (recomendado)"
+        Write-Host "  [2] Excluir o banco e o usuario para criar uma instalacao limpa"
+        Write-Host "  [3] Cancelar"
+        $choice = (Read-Host "Escolha uma opcao [1]").Trim()
+        if ($choice -eq "2") {
+            Write-Host ""
+            Write-Host "Esta acao apaga permanentemente todas as tabelas de '$DatabaseName'." -ForegroundColor Red
+            $confirmation = (Read-Host "Digite EXCLUIR para confirmar").Trim()
+            if ($confirmation -cne "EXCLUIR") {
+                Stop-Installer "Exclusao do banco cancelada; nenhum dado foi removido."
+            }
+            $resetExisting = $true
+        } elseif ($choice -eq "3") {
+            Stop-Installer "Instalacao cancelada; nenhum dado foi removido."
+        } else {
+            $script:DatabaseNotice = "O banco existente foi preservado. Use Banco existente e informe um usuario do MySQL ou MariaDB; nao use o login do Zabbix ou do painel."
+            Write-WarningMessage $script:DatabaseNotice
+            return $null
+        }
+    }
+
+    if ($resetExisting) {
+        $dropSql = @"
+DROP DATABASE IF EXISTS ``$DatabaseName``;
+DROP USER IF EXISTS '$DatabaseUser'@'localhost';
+DROP USER IF EXISTS '$DatabaseUser'@'127.0.0.1';
+FLUSH PRIVILEGES;
+"@
+        $removed = Invoke-MySql $mysql $dropSql $rootPassword
+        if (-not $removed.Ok) {
+            Stop-Installer "Nao foi possivel excluir o banco existente. Nenhum arquivo de configuracao foi criado."
+        }
     }
 
     $databasePassword = New-RandomHex 24
@@ -745,7 +1016,8 @@ FLUSH PRIVILEGES;
 "@
     $created = Invoke-MySql $mysql $sql $rootPassword
     if (-not $created.Ok) {
-        Write-WarningMessage "O banco automatico falhou. Use o modo personalizado no wizard."
+        $script:DatabaseNotice = "A criacao automatica do banco falhou. Use Banco existente e informe as credenciais do MySQL ou MariaDB."
+        Write-WarningMessage $script:DatabaseNotice
         return $null
     }
 
@@ -768,8 +1040,11 @@ function Write-SetupDefinition(
     [hashtable]$PreparedDatabase,
     [string]$RequestedVersion
 ) {
-    $tokenRaw = (New-RandomHex 4).ToUpperInvariant()
-    $token = $tokenRaw.Substring(0, 4) + "-" + $tokenRaw.Substring(4, 4)
+    $tokenRaw = (New-RandomHex 8).ToUpperInvariant()
+    $token = $tokenRaw.Substring(0, 4) + "-" +
+        $tokenRaw.Substring(4, 4) + "-" +
+        $tokenRaw.Substring(8, 4) + "-" +
+        $tokenRaw.Substring(12, 4)
     $sha = [Security.Cryptography.SHA256]::Create()
     try {
         $tokenHash = ([BitConverter]::ToString(
@@ -789,6 +1064,9 @@ function Write-SetupDefinition(
     $lines.Add("    'token_hash' => $(ConvertTo-PhpString $tokenHash),")
     $lines.Add("    'expires_at' => $expires,")
     $lines.Add("    'version' => $(ConvertTo-PhpString $RequestedVersion),")
+    if ($script:DatabaseNotice) {
+        $lines.Add("    'database_notice' => $(ConvertTo-PhpString $script:DatabaseNotice),")
+    }
     if ($PreparedDatabase) {
         $lines.Add("    'prepared_db' => [")
         foreach ($key in @("host", "port", "database", "username", "password", "charset")) {
@@ -841,12 +1119,25 @@ function Restore-InstallerChanges {
             Remove-Item -LiteralPath $resolved -Recurse -Force
         }
     }
+
+    if ($script:ExistingInstallBackup -and
+        $InstallDir -and
+        (Test-Path -LiteralPath $script:ExistingInstallBackup) -and
+        -not (Test-Path -LiteralPath $InstallDir)) {
+        Copy-Item -LiteralPath $script:ExistingInstallBackup `
+            -Destination $InstallDir -Recurse
+        Write-WarningMessage "Os arquivos anteriores foram restaurados."
+    }
 }
 
 function Remove-InstallerTemporaryFiles {
     if ($script:TemporaryDirectory -and
         (Test-Path -LiteralPath $script:TemporaryDirectory)) {
         Remove-Item -LiteralPath $script:TemporaryDirectory -Recurse -Force
+    }
+    if ($script:ApacheConfigBackup -and
+        (Test-Path -LiteralPath $script:ApacheConfigBackup)) {
+        Remove-Item -LiteralPath $script:ApacheConfigBackup -Force
     }
 }
 
@@ -875,6 +1166,7 @@ function Invoke-Installer {
 
     $apacheProcessIds = Get-ApacheProcessIds $httpdPath
     $portSelection = Select-HttpPort $Port $apacheConfiguration.ListenPorts $apacheProcessIds
+    $portSelection = Confirm-HttpPort $portSelection $apacheConfiguration.ListenPorts $apacheProcessIds
     $selectedPort = [int]$portSelection.Port
     Write-Info "Porta HTTP selecionada: $selectedPort"
 
@@ -892,6 +1184,8 @@ function Invoke-Installer {
         return
     }
 
+    $firewallRequested = Resolve-FirewallChoice $selectedPort
+
     if (-not $InstallDir) {
         $script:InstallDir = Join-Path $apacheConfiguration.DocumentRoot "central-incidentes"
     } else {
@@ -908,16 +1202,7 @@ function Invoke-Installer {
     if ($InstallDir -eq $apacheConfiguration.DocumentRoot) {
         Stop-Installer "Use uma subpasta do DocumentRoot para nao substituir o site principal."
     }
-    if (Test-Path -LiteralPath (Join-Path $InstallDir "config\app.php")) {
-        Stop-Installer "Ja existe uma instalacao em $InstallDir. Este instalador inicial nao realiza atualizacoes."
-    }
-    if (Test-Path -LiteralPath $InstallDir) {
-        $existing = @(Get-ChildItem -LiteralPath $InstallDir -Force)
-        if ($existing.Count -gt 0) {
-            Stop-Installer "A pasta $InstallDir nao esta vazia."
-        }
-        Remove-Item -LiteralPath $InstallDir -Force
-    }
+    $script:InstallMode = Resolve-InstallMode $InstallDir
 
     $projectSource = Get-ProjectSource $Source $Version
     $sourcePrefix = $projectSource.TrimEnd("\") + "\"
@@ -925,8 +1210,12 @@ function Invoke-Installer {
         $InstallDir.StartsWith($sourcePrefix, [StringComparison]::OrdinalIgnoreCase)) {
         Stop-Installer "A pasta de destino nao pode ser igual ou interna a pasta de origem."
     }
-    Write-Info "Copiando arquivos para $InstallDir..."
-    Copy-ProjectFiles $projectSource $InstallDir
+    if ($script:InstallMode -eq "Update") {
+        Write-Info "Atualizando arquivos em $InstallDir sem alterar o banco..."
+    } else {
+        Write-Info "Instalando arquivos em $InstallDir..."
+    }
+    Install-ProjectFiles $projectSource $InstallDir $script:InstallMode
 
     $configurationChanged = Add-ApacheListenPort $apacheConfiguration $selectedPort
     Test-ApacheConfiguration $resolvedApacheRoot
@@ -934,7 +1223,14 @@ function Invoke-Installer {
 
     $relativePath = $InstallDir.Substring($apacheConfiguration.DocumentRoot.Length).
         TrimStart("\").Replace("\", "/")
-    $urlPath = if ($relativePath) { "/$relativePath/setup/" } else { "/setup/" }
+    $panelPath = if ($relativePath) { "/$relativePath/" } else { "/" }
+    $urlPath = if ($script:InstallMode -eq "Update") {
+        $panelPath
+    } elseif ($relativePath) {
+        "/$relativePath/setup/"
+    } else {
+        "/setup/"
+    }
     $resolvedServerName = Get-PreferredServerName
     if ($resolvedServerName -notmatch '^[A-Za-z0-9.\-\[\]:]+$') {
         Stop-Installer "Nome ou IP do servidor invalido: $resolvedServerName."
@@ -952,11 +1248,33 @@ function Invoke-Installer {
     }
     Test-SetupEndpoint "http://$localAuthority$urlPath"
 
+    Write-Host ""
+    if ($script:InstallMode -eq "Update") {
+        Set-PanelFirewallRule $selectedPort $httpdPath $firewallRequested
+        Write-Success "Atualizacao concluida com sucesso."
+        Write-Host ""
+        Write-Host "  Acesse:  http://$authority$panelPath"
+        Write-Host ""
+        Write-Host "A configuracao e o banco foram preservados."
+        if (-not $NoBrowser -and -not $TestMode) {
+            try {
+                Start-Process "http://$authority$panelPath"
+            } catch {
+                Write-WarningMessage "Abra manualmente o endereco exibido acima."
+            }
+        }
+        return @{
+            Url = "http://$authority$panelPath"
+            InstallDir = $InstallDir
+            Port = $selectedPort
+            Mode = $script:InstallMode
+        }
+    }
+
     $preparedDatabase = Prepare-LocalDatabase $resolvedApacheRoot
     $setupToken = Write-SetupDefinition $InstallDir $preparedDatabase $Version
-    Set-PanelFirewallRule $selectedPort
+    Set-PanelFirewallRule $selectedPort $httpdPath $firewallRequested
 
-    Write-Host ""
     Write-Success "Servidor preparado com sucesso."
     Write-Host ""
     Write-Host "  Acesse:  $setupUrl"

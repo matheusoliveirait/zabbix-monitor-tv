@@ -422,6 +422,24 @@ select:focus-visible {
   line-height: 1.5;
 }
 
+.setup-form label small {
+  color: var(--muted-2);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.database-guidance {
+  max-width: 760px;
+  margin: -6px 0 20px;
+  padding: 11px 13px;
+  border-left: 3px solid var(--warning);
+  background: rgba(242, 183, 5, 0.08);
+  color: #c9b987;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .button {
   width: fit-content;
   min-width: 140px;

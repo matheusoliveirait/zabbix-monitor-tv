@@ -76,11 +76,11 @@ header('X-Frame-Options: DENY');
           <div class="setup-platforms">
             <div class="command-panel">
               <span>Ubuntu ou Debian</span>
-              <code>wget -qO /tmp/central-incidentes-install.sh https://github.com/matheusoliveirait/zabbix-monitor-tv/releases/latest/download/install.sh &amp;&amp; sudo bash /tmp/central-incidentes-install.sh</code>
+              <code>(arquivo=$(mktemp) &amp;&amp; trap 'rm -f "$arquivo"' EXIT &amp;&amp; wget -qO "$arquivo" https://github.com/matheusoliveirait/zabbix-monitor-tv/releases/latest/download/install.sh &amp;&amp; sudo bash "$arquivo")</code>
             </div>
             <div class="command-panel">
               <span>Windows PowerShell</span>
-              <code>&amp; { $ErrorActionPreference = 'Stop'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $arquivo = Join-Path $env:TEMP 'central-incidentes-install.ps1'; Invoke-WebRequest 'https://github.com/matheusoliveirait/zabbix-monitor-tv/releases/latest/download/install-windows.ps1' -UseBasicParsing -OutFile $arquivo; powershell -NoProfile -ExecutionPolicy Bypass -File $arquivo }</code>
+              <code>&amp; { $ErrorActionPreference = 'Stop'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $arquivo = Join-Path $env:TEMP ("central-incidentes-" + [guid]::NewGuid().ToString("N") + ".ps1"); try { Invoke-WebRequest 'https://github.com/matheusoliveirait/zabbix-monitor-tv/releases/latest/download/install-windows.ps1' -UseBasicParsing -OutFile $arquivo; powershell -NoProfile -ExecutionPolicy Bypass -File $arquivo } finally { Remove-Item $arquivo -Force -ErrorAction SilentlyContinue } }</code>
             </div>
           </div>
           <div class="setup-install-actions">
@@ -105,7 +105,7 @@ header('X-Frame-Options: DENY');
           <form id="unlockForm" class="setup-form narrow">
             <label for="setupToken">Código temporário</label>
             <input id="setupToken" name="token" class="setup-token" type="text" inputmode="text"
-              maxlength="32" autocomplete="one-time-code" placeholder="ABCD-EFGH" required autofocus />
+              maxlength="32" autocomplete="one-time-code" placeholder="ABCD-EFGH-IJKL-MNOP" required autofocus />
             <button class="button primary" type="submit">Validar código</button>
           </form>
         </section>
@@ -134,6 +134,7 @@ header('X-Frame-Options: DENY');
             <button type="button" data-db-mode="prepared" aria-pressed="true">Banco preparado</button>
             <button type="button" data-db-mode="custom" aria-pressed="false">Banco existente</button>
           </div>
+          <p class="database-guidance" id="preparedDatabaseNotice" role="status" hidden></p>
 
           <form id="databaseForm" class="setup-form">
             <div id="preparedDatabase" class="prepared-database">
@@ -154,9 +155,11 @@ header('X-Frame-Options: DENY');
               </label>
               <label>Usuário
                 <input name="username" type="text" maxlength="80" autocomplete="username" />
+                <small>Usuário do MySQL/MariaDB com acesso ao banco. Não é o login do Zabbix nem do painel.</small>
               </label>
               <label>Senha
                 <input name="password" type="password" autocomplete="current-password" />
+                <small>Senha desse usuário do banco. Em um XAMPP novo, o usuário root geralmente começa sem senha.</small>
               </label>
             </div>
 
