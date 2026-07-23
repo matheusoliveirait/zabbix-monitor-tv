@@ -19,6 +19,7 @@ RESET_DATABASE="${CENTRAL_INCIDENTES_RESET_DATABASE:-0}"
 OPEN_FIREWALL="${CENTRAL_INCIDENTES_OPEN_FIREWALL:-0}"
 TEST_MODE="${CENTRAL_INCIDENTES_TEST_MODE:-0}"
 TEST_APT_UPDATE_OUTPUT="${CENTRAL_INCIDENTES_TEST_APT_UPDATE_OUTPUT:-}"
+TEST_APT_SIMULATION_OUTPUT="${CENTRAL_INCIDENTES_TEST_APT_SIMULATION_OUTPUT:-}"
 TEST_VALIDATE_OS="${CENTRAL_INCIDENTES_TEST_VALIDATE_OS:-0}"
 OS_RELEASE_FILE="${CENTRAL_INCIDENTES_OS_RELEASE_FILE:-/etc/os-release}"
 WORK_DIR=""
@@ -40,6 +41,8 @@ NGINX_DEFAULT_TARGET=""
 APACHE_SITE_ENABLED_BY_INSTALLER=0
 NGINX_SITE_LINK_CREATED=0
 APACHE_PORT_CONF_ENABLED_BY_INSTALLER=0
+LOCAL_DB_SERVICE=""
+LOCAL_DB_LABEL=""
 
 [[ -n "$PORT" ]] && PORT_EXPLICIT=1
 
@@ -145,6 +148,24 @@ show_apt_state() {
     fi
 }
 
+detect_local_database_server() {
+    local server_version=""
+
+    if command -v mariadbd >/dev/null 2>&1; then
+        server_version=$(mariadbd --version 2>/dev/null || true)
+    elif command -v mysqld >/dev/null 2>&1; then
+        server_version=$(mysqld --version 2>/dev/null || true)
+    fi
+
+    if [[ "$server_version" == *MariaDB* ]]; then
+        LOCAL_DB_SERVICE="mariadb"
+        LOCAL_DB_LABEL="MariaDB"
+    elif [[ -n "$server_version" ]]; then
+        LOCAL_DB_SERVICE="mysql"
+        LOCAL_DB_LABEL="MySQL"
+    fi
+}
+
 validate_supported_linux() {
     [[ -r "$OS_RELEASE_FILE" ]] || fail "Não foi possível identificar a distribuição Linux."
 
@@ -199,10 +220,26 @@ run_apt_preflight() {
         fail "Um ou mais repositórios possuem assinatura inválida ou chave pública ausente."
     fi
 
-    [[ "$TEST_MODE" == "1" ]] && return
+    if [[ "$TEST_MODE" == "1" && -z "$TEST_APT_SIMULATION_OUTPUT" ]]; then
+        return
+    fi
 
     info "Simulando a instalação das dependências..."
-    if ! apt-get install --simulate "${COMMON_PACKAGES[@]}" 2>&1 | tee "$simulation_log"; then
+    local simulation_ok=1
+    if [[ "$TEST_MODE" == "1" ]]; then
+        printf '%s\n' "$TEST_APT_SIMULATION_OUTPUT" | tee "$simulation_log"
+    elif ! LC_ALL=C apt-get --simulate --no-remove install "${COMMON_PACKAGES[@]}" \
+        2>&1 | tee "$simulation_log"; then
+        simulation_ok=0
+    fi
+
+    if grep -Eq \
+        '^Remv[[:space:]]|^The following packages will be REMOVED:|Packages need to be removed but remove is disabled' \
+        "$simulation_log"; then
+        fail "A instalação exigiria remover pacotes existentes. Nenhuma alteração foi realizada."
+    fi
+
+    if [[ "$simulation_ok" != "1" ]]; then
         show_apt_state
         show_apt_recovery
         fail "O APT não conseguiu resolver as dependências. Nenhum pacote do painel foi instalado."
@@ -437,6 +474,9 @@ fi
 [[ "$WEB_SERVER" == "apache" || "$WEB_SERVER" == "nginx" ]] || fail "Escolha apache ou nginx."
 [[ ! -L "$INSTALL_DIR" ]] || fail "A pasta de instalação não pode ser um link simbólico."
 resolve_install_action
+if [[ "$INSTALL_ACTION" != "update" ]]; then
+    detect_local_database_server
+fi
 
 if [[ "$NON_INTERACTIVE" != "1" ]]; then
     printf 'Usar o painel como site padrao da porta escolhida? [S/n]: '
@@ -444,7 +484,11 @@ if [[ "$NON_INTERACTIVE" != "1" ]]; then
     [[ "${answer:-S}" =~ ^[Nn]$ ]] && MAKE_DEFAULT=0
 
     if [[ "$INSTALL_ACTION" != "update" ]]; then
-        printf 'Preparar um banco MariaDB local automaticamente? [S/n]: '
+        if [[ -n "$LOCAL_DB_SERVICE" ]]; then
+            printf 'Usar o %s existente para preparar o banco do painel? [S/n]: ' "$LOCAL_DB_LABEL"
+        else
+            printf 'Preparar um banco MariaDB local automaticamente? [S/n]: '
+        fi
         read -r answer
         [[ "${answer:-S}" =~ ^[Nn]$ ]] && CONFIGURE_LOCAL_DB=0
     fi
@@ -453,7 +497,13 @@ fi
 
 COMMON_PACKAGES=(iproute2 ca-certificates curl unzip wget openssl php-cli php-common php-mysql php-curl php-mbstring)
 if [[ "$CONFIGURE_LOCAL_DB" == "1" ]]; then
-    COMMON_PACKAGES+=(mariadb-server)
+    if [[ -n "$LOCAL_DB_SERVICE" ]]; then
+        info "$LOCAL_DB_LABEL existente detectado; o banco será preservado e reutilizado."
+    else
+        LOCAL_DB_SERVICE="mariadb"
+        LOCAL_DB_LABEL="MariaDB"
+        COMMON_PACKAGES+=(mariadb-server)
+    fi
 fi
 if [[ "$WEB_SERVER" == "apache" ]]; then
     COMMON_PACKAGES+=(apache2 libapache2-mod-php)
@@ -468,7 +518,7 @@ fi
 
 if [[ "$TEST_MODE" != "1" ]]; then
     info "Instalando a ferramenta de detecção de portas..."
-    if ! apt-get install -y iproute2; then
+    if ! apt-get -y --no-remove install iproute2; then
         show_apt_state
         show_apt_recovery
         fail "Não foi possível instalar iproute2."
@@ -534,7 +584,7 @@ if [[ "$TEST_MODE" != "1" ]]; then
         POLICY_RC_CREATED=1
     fi
 
-    if ! apt-get install -y "${COMMON_PACKAGES[@]}"; then
+    if ! apt-get -y --no-remove install "${COMMON_PACKAGES[@]}"; then
         show_apt_state
         show_apt_recovery
         fail "A instalação das dependências falhou."
@@ -633,8 +683,10 @@ fi
 DB_PASSWORD=""
 DB_PREPARED=0
 if [[ "$INSTALL_ACTION" != "update" && "$CONFIGURE_LOCAL_DB" == "1" ]]; then
-    systemctl enable --now mariadb >/dev/null
-    if EXISTING_STATE=$(mysql --protocol=socket -uroot --batch --skip-column-names \
+    if ! systemctl enable --now "$LOCAL_DB_SERVICE" >/dev/null; then
+        DB_NOTICE="Não foi possível iniciar o $LOCAL_DB_LABEL. Use Banco existente e informe credenciais válidas."
+        warn "$DB_NOTICE"
+    elif EXISTING_STATE=$(mysql --protocol=socket -uroot --batch --skip-column-names \
         --execute="SELECT CONCAT(
             (SELECT COUNT(*) FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = '$DB_NAME'),
             ':',
@@ -686,7 +738,7 @@ if [[ "$INSTALL_ACTION" != "update" && "$CONFIGURE_LOCAL_DB" == "1" ]]; then
             if [[ "$RESET_DATABASE" == "1" ]]; then
                 info "Excluindo somente o banco e o usuário confirmados..."
                 mysql --protocol=socket -uroot <<SQL
-DROP DATABASE IF EXISTS `$DB_NAME`;
+DROP DATABASE IF EXISTS $DB_NAME;
 DROP USER IF EXISTS '$DB_USER'@'localhost';
 DROP USER IF EXISTS '$DB_USER'@'127.0.0.1';
 FLUSH PRIVILEGES;
@@ -696,11 +748,11 @@ SQL
             DB_PASSWORD=$(openssl rand -hex 24)
             info "Criando banco e usuário exclusivos..."
             if mysql --protocol=socket -uroot <<SQL
-CREATE DATABASE `$DB_NAME` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE $DB_NAME CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASSWORD';
 CREATE USER '$DB_USER'@'127.0.0.1' IDENTIFIED BY '$DB_PASSWORD';
-GRANT ALL PRIVILEGES ON `$DB_NAME`.* TO '$DB_USER'@'localhost';
-GRANT ALL PRIVILEGES ON `$DB_NAME`.* TO '$DB_USER'@'127.0.0.1';
+GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';
+GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'127.0.0.1';
 FLUSH PRIVILEGES;
 SQL
             then
@@ -712,7 +764,7 @@ SQL
             fi
         fi
     else
-        DB_NOTICE="O MariaDB usa credenciais administrativas próprias. Use Banco existente e informe um usuário do MySQL ou MariaDB."
+        DB_NOTICE="O acesso administrativo ao $LOCAL_DB_LABEL foi recusado. Use Banco existente e informe um usuário do MySQL ou MariaDB."
         warn "$DB_NOTICE"
     fi
 elif [[ "$INSTALL_ACTION" != "update" ]]; then
@@ -860,7 +912,21 @@ elif [[ "$WEB_SERVER" == "apache" ]]; then
     systemctl enable --now apache2 >/dev/null
     systemctl reload apache2
 else
-    PHP_FPM_SOCKET=$(find /run/php -maxdepth 1 -type s -name 'php*-fpm.sock' | sort -V | tail -n 1)
+    PHP_FPM_VERSION=$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')
+    PHP_FPM_SERVICE="php${PHP_FPM_VERSION}-fpm"
+    if ! systemctl enable --now "$PHP_FPM_SERVICE" >/dev/null; then
+        fail "Não foi possível iniciar o serviço $PHP_FPM_SERVICE."
+    fi
+
+    PHP_FPM_SOCKET="/run/php/php${PHP_FPM_VERSION}-fpm.sock"
+    for _ in {1..20}; do
+        [[ -S "$PHP_FPM_SOCKET" ]] && break
+        sleep 0.25
+    done
+    if [[ ! -S "$PHP_FPM_SOCKET" ]]; then
+        PHP_FPM_SOCKET=$(find /run/php -maxdepth 1 -type s -name 'php*-fpm.sock' \
+            2>/dev/null | sort -V | tail -n 1)
+    fi
     [[ -n "$PHP_FPM_SOCKET" ]] || fail "O socket do PHP-FPM não foi encontrado."
 
     CONFIG_PATH="/etc/nginx/sites-available/central-incidentes"
