@@ -48,7 +48,22 @@ if CENTRAL_INCIDENTES_TEST_APT_UPDATE_OUTPUT='W: GPG error: https://example.inva
 fi
 assert_missing "$INSTALL_DIR"
 
-run_installer
+MINT_20_OS_RELEASE="$TEMP_ROOT/mint-20-os-release"
+printf 'ID=linuxmint\nVERSION_ID="20.3"\nPRETTY_NAME="Linux Mint 20.3"\n' > "$MINT_20_OS_RELEASE"
+if CENTRAL_INCIDENTES_TEST_VALIDATE_OS=1 \
+    CENTRAL_INCIDENTES_OS_RELEASE_FILE="$MINT_20_OS_RELEASE" \
+    run_installer >"$TEMP_ROOT/mint-20.log" 2>&1; then
+    printf 'Falha: Linux Mint 20.3 deveria ser recusado.\n' >&2
+    exit 1
+fi
+grep -q 'Linux Mint 20.3 não é compatível' "$TEMP_ROOT/mint-20.log"
+assert_missing "$INSTALL_DIR"
+
+MINT_21_OS_RELEASE="$TEMP_ROOT/mint-21-os-release"
+printf 'ID=linuxmint\nVERSION_ID="21.3"\nPRETTY_NAME="Linux Mint 21.3"\n' > "$MINT_21_OS_RELEASE"
+CENTRAL_INCIDENTES_TEST_VALIDATE_OS=1 \
+    CENTRAL_INCIDENTES_OS_RELEASE_FILE="$MINT_21_OS_RELEASE" \
+    run_installer
 assert_file "$INSTALL_DIR/index.php"
 assert_file "$INSTALL_DIR/setup/index.php"
 assert_file "$INSTALL_DIR/config/setup.php"

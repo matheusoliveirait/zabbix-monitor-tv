@@ -31,6 +31,7 @@ O projeto consulta a API oficial do Zabbix, protege o token no backend e apresen
 
 ## Requisitos
 
+- Linux Mint 21+, Ubuntu 22.04+ ou Debian 12+ para instalação automática no Linux.
 - Apache ou Nginx.
 - PHP 8.1 ou superior, com PDO MySQL, cURL e OpenSSL.
 - MySQL 8+ ou MariaDB 10.4+.
@@ -41,7 +42,7 @@ O projeto consulta a API oficial do Zabbix, protege o token no backend e apresen
 
 Os comandos abaixo baixam o instalador oficial da release mais recente e iniciam o assistente. Ao final, o terminal mostra o endereco do wizard e um codigo temporario.
 
-### Linux (Ubuntu, Debian ou Linux Mint)
+### Linux (Linux Mint 21+, Ubuntu 22.04+ ou Debian 12+)
 
 Cole esta linha no terminal:
 
@@ -111,7 +112,7 @@ No passo 3 do wizard, **Usuario** e **Senha** sao credenciais do MySQL/MariaDB c
 
 Este caminho permite baixar e revisar o instalador antes da execucao.
 
-### Linux (Ubuntu, Debian ou Linux Mint)
+### Linux (Linux Mint 21+, Ubuntu 22.04+ ou Debian 12+)
 
 ```bash
 wget https://github.com/matheusoliveirait/zabbix-monitor-tv/releases/latest/download/install.sh
@@ -272,7 +273,7 @@ Os cenarios usam apenas nomes ficticios.
 - `config/app.example.php`: modelo seguro da configuracao local.
 - `setup/`: instalador web protegido por codigo temporario.
 - `deploy/`: modelos revisaveis para Apache e Nginx.
-- `install.sh`: preparacao automatizada para Ubuntu, Debian e Linux Mint.
+- `install.sh`: preparacao automatizada para Linux Mint 21+, Ubuntu 22.04+ e Debian 12+.
 - `install-windows.ps1`: preparacao automatizada para Apache e XAMPP no Windows.
 
 ## Seguranca
