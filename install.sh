@@ -702,6 +702,45 @@ read_database_data_dir() {
     run_mysql_admin --batch --skip-column-names --execute="SELECT @@datadir;"
 }
 
+ensure_database_data_dir_writable() {
+    local reported_data_dir
+    reported_data_dir=$(read_database_data_dir 2>/dev/null) \
+        || fail "Não foi possível identificar o diretório de dados do $LOCAL_DB_LABEL."
+    DB_DATA_DIR=$(readlink -f -- "${reported_data_dir%/}" 2>/dev/null || true)
+    [[ -n "$DB_DATA_DIR" && "$DB_DATA_DIR" != "/" && -d "$DB_DATA_DIR" ]] \
+        || fail "O diretório de dados informado pelo $LOCAL_DB_LABEL não é válido."
+
+    local service_user
+    service_user=$(systemctl show "$LOCAL_DB_SERVICE" --property=User --value 2>/dev/null)
+    [[ "$service_user" =~ ^[A-Za-z_][A-Za-z0-9_-]*$ ]] \
+        || fail "Não foi possível identificar o usuário do serviço $LOCAL_DB_SERVICE."
+    local service_group
+    service_group=$(id -gn "$service_user" 2>/dev/null) \
+        || fail "Não foi possível identificar o grupo do usuário $service_user."
+
+    command -v runuser >/dev/null 2>&1 \
+        || fail "A ferramenta runuser é necessária para validar o diretório do banco."
+    if runuser -u "$service_user" -- test -w "$DB_DATA_DIR"; then
+        return
+    fi
+
+    local current_permissions
+    current_permissions=$(stat -c '%U:%G, modo %a' "$DB_DATA_DIR" 2>/dev/null || printf 'desconhecidas')
+    warn "$DB_DATA_DIR não permite escrita para $service_user (atual: $current_permissions)."
+    [[ "$NON_INTERACTIVE" != "1" ]] \
+        || fail "Corrija o proprietário do diretório de dados antes de executar novamente."
+
+    if ! ask_yes_no "Corrigir somente a pasta principal para $service_user:$service_group?" "yes"; then
+        fail "A permissão do diretório de dados não foi alterada."
+    fi
+
+    chown --no-dereference "$service_user:$service_group" "$DB_DATA_DIR"
+    chmod u+rwx "$DB_DATA_DIR"
+    runuser -u "$service_user" -- test -w "$DB_DATA_DIR" \
+        || fail "O diretório continua sem permissão de escrita para $service_user."
+    success "Permissão da pasta principal do banco corrigida sem alterar seu conteúdo."
+}
+
 confirm_database_reset() {
     printf '\n'
     if [[ "$ORPHAN_DB_DIR" == "1" ]]; then
@@ -734,6 +773,7 @@ archive_orphan_database_dir() {
 
 DB_PASSWORD=""
 DB_PREPARED=0
+DB_MANUAL_FALLBACK_ACCEPTED=0
 if [[ "$INSTALL_ACTION" != "update" && "$CONFIGURE_LOCAL_DB" == "1" ]]; then
     DB_ADMIN_READY=0
     if ! systemctl enable --now "$LOCAL_DB_SERVICE" >/dev/null; then
@@ -760,22 +800,18 @@ if [[ "$INSTALL_ACTION" != "update" && "$CONFIGURE_LOCAL_DB" == "1" ]]; then
     if [[ "$DB_ADMIN_READY" == "1" ]]; then
         SHOULD_CREATE=1
         ORPHAN_DB_DIR=0
-        DB_DATA_DIR=""
         DB_SCHEMA_PATH=""
+        ensure_database_data_dir_writable
         EXISTING_DATABASE_COUNT="${EXISTING_STATE%%:*}"
         DB_RESOURCES_EXIST=0
         [[ "$EXISTING_STATE" != "0:0" ]] && DB_RESOURCES_EXIST=1
 
-        if [[ "$EXISTING_DATABASE_COUNT" == "0" ]] \
-            && DB_DATA_DIR=$(read_database_data_dir 2>/dev/null); then
-            DB_DATA_DIR=$(readlink -f -- "${DB_DATA_DIR%/}" 2>/dev/null || true)
-            if [[ -n "$DB_DATA_DIR" && "$DB_DATA_DIR" != "/" ]]; then
-                DB_SCHEMA_PATH="$DB_DATA_DIR/$DB_NAME"
-                if [[ -e "$DB_SCHEMA_PATH" || -L "$DB_SCHEMA_PATH" ]]; then
-                    ORPHAN_DB_DIR=1
-                    DB_RESOURCES_EXIST=1
-                    warn "Foi encontrada uma pasta residual não registrada pelo banco: $DB_SCHEMA_PATH"
-                fi
+        if [[ "$EXISTING_DATABASE_COUNT" == "0" ]]; then
+            DB_SCHEMA_PATH="$DB_DATA_DIR/$DB_NAME"
+            if [[ -e "$DB_SCHEMA_PATH" || -L "$DB_SCHEMA_PATH" ]]; then
+                ORPHAN_DB_DIR=1
+                DB_RESOURCES_EXIST=1
+                warn "Foi encontrada uma pasta residual não registrada pelo banco: $DB_SCHEMA_PATH"
             fi
         fi
 
@@ -809,6 +845,7 @@ if [[ "$INSTALL_ACTION" != "update" && "$CONFIGURE_LOCAL_DB" == "1" ]]; then
                     3) fail "Instalação cancelada; nenhum dado foi removido." ;;
                     *)
                         SHOULD_CREATE=0
+                        DB_MANUAL_FALLBACK_ACCEPTED=1
                         DB_NOTICE="O banco existente foi preservado. Use Banco existente e informe um usuário do MySQL ou MariaDB; não use o login do Zabbix ou do painel."
                         warn "$DB_NOTICE"
                         ;;
@@ -850,6 +887,16 @@ SQL
 elif [[ "$INSTALL_ACTION" != "update" ]]; then
     DB_NOTICE="O banco automático não foi solicitado. Use Banco existente e informe uma conexão MySQL ou MariaDB."
 fi
+
+if [[ "$INSTALL_ACTION" != "update" && "$CONFIGURE_LOCAL_DB" == "1" \
+    && "$DB_PREPARED" != "1" && "$DB_MANUAL_FALLBACK_ACCEPTED" != "1" ]]; then
+    if [[ "$NON_INTERACTIVE" == "1" ]] \
+        || ! ask_yes_no "Continuar sem banco preparado e informar credenciais no wizard?" "no"; then
+        fail "O banco solicitado não foi preparado; a instalação foi interrompida."
+    fi
+    DB_MANUAL_FALLBACK_ACCEPTED=1
+fi
+
 MYSQL_ADMIN_PASSWORD=""
 unset MYSQL_PWD
 
