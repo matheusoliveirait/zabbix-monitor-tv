@@ -1,0 +1,62 @@
+name: Publicar release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    name: Validar e empacotar
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Preparar PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: curl, mbstring, openssl, pdo_mysql
+          coverage: none
+
+      - name: Validar arquivos PHP
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            php -l "$file"
+          done < <(find . -type f -name '*.php' -not -path './work/*' -print0)
+
+      - name: Validar JavaScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            node --check "$file"
+          done < <(find . -type f -name '*.js' -not -path './work/*' -print0)
+
+      - name: Criar pacote e checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          git archive --format=zip --output central-incidentes.zip HEAD
+          sha256sum central-incidentes.zip > central-incidentes.zip.sha256
+          cp install.sh install-linux.sh
+
+      - name: Publicar no GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            central-incidentes.zip \
+            central-incidentes.zip.sha256 \
+            install.sh \
+            install-linux.sh \
+            --generate-notes \
+            --title "Central de Incidentes ${GITHUB_REF_NAME}"

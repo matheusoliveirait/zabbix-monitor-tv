@@ -9,6 +9,19 @@ header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
 
+require_once dirname(__DIR__) . '/includes/installation.php';
+
+if (!application_is_installed()) {
+    http_response_code(503);
+    echo json_encode([
+        'ok' => false,
+        'error' => 'A instalação ainda não foi concluída.',
+        'needsInstallation' => true,
+        'setupUrl' => setup_url(),
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
 final class ZabbixApiException extends RuntimeException
 {
 }

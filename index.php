@@ -2,6 +2,12 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/includes/installation.php';
+
+if (!application_is_installed()) {
+    redirect_to_installer();
+}
+
 require __DIR__ . '/api/bootstrap.php';
 
 header_remove('Content-Type');
