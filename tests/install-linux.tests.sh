@@ -74,6 +74,13 @@ if grep -Eq 'chown .*(-R|--recursive).*DB_DATA_DIR' "$ROOT/install.sh"; then
     exit 1
 fi
 grep -q 'Continuar sem banco preparado e informar credenciais no wizard' "$ROOT/install.sh"
+grep -q 'Servidor .* existente detectado; o banco do painel será verificado separadamente' "$ROOT/install.sh"
+grep -q "Escolha como tratar o banco.*nesta reinstalação" "$ROOT/install.sh"
+grep -q 'Excluir qualquer banco e usuário do painel e criar uma instalação limpa' "$ROOT/install.sh"
+grep -q 'Limpar somente os recursos do painel, corrigir o acesso e tentar novamente' "$ROOT/install.sh"
+grep -q 'repair_database_security_controls' "$ROOT/install.sh"
+grep -q 'journalctl -u.*LOCAL_DB_SERVICE' "$ROOT/install.sh"
+grep -q 'central-incidentes-write-test' "$ROOT/install.sh"
 
 MINT_20_OS_RELEASE="$TEMP_ROOT/mint-20-os-release"
 printf 'ID=linuxmint\nVERSION_ID="20.3"\nPRETTY_NAME="Linux Mint 20.3"\n' > "$MINT_20_OS_RELEASE"

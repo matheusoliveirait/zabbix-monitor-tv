@@ -149,20 +149,47 @@ show_apt_state() {
 }
 
 detect_local_database_server() {
+    local active_service=""
+    local candidate=""
+    local unit_id=""
     local server_version=""
 
-    if command -v mariadbd >/dev/null 2>&1; then
+    for candidate in mysql mariadb; do
+        if systemctl is-active --quiet "$candidate" 2>/dev/null; then
+            unit_id=$(systemctl show "$candidate" --property=Id --value 2>/dev/null || true)
+            case "$unit_id" in
+                mysql.service) active_service="mysql" ;;
+                mariadb.service) active_service="mariadb" ;;
+            esac
+            [[ -n "$active_service" ]] && break
+        fi
+    done
+
+    if command -v mysql >/dev/null 2>&1; then
+        server_version=$(
+            env -u MYSQL_PWD mysql --protocol=socket -uroot --batch --skip-column-names \
+                --execute="SELECT CONCAT(@@version, ' ', @@version_comment);" 2>/dev/null \
+                || true
+        )
+    fi
+    if [[ -z "$server_version" ]] && command -v mariadbd >/dev/null 2>&1; then
         server_version=$(mariadbd --version 2>/dev/null || true)
-    elif command -v mysqld >/dev/null 2>&1; then
+    elif [[ -z "$server_version" ]] && command -v mysqld >/dev/null 2>&1; then
         server_version=$(mysqld --version 2>/dev/null || true)
     fi
 
     if [[ "$server_version" == *MariaDB* ]]; then
-        LOCAL_DB_SERVICE="mariadb"
         LOCAL_DB_LABEL="MariaDB"
     elif [[ -n "$server_version" ]]; then
-        LOCAL_DB_SERVICE="mysql"
         LOCAL_DB_LABEL="MySQL"
+    fi
+
+    if [[ -n "$active_service" ]]; then
+        LOCAL_DB_SERVICE="$active_service"
+    elif [[ "$LOCAL_DB_LABEL" == "MariaDB" ]]; then
+        LOCAL_DB_SERVICE="mariadb"
+    elif [[ "$LOCAL_DB_LABEL" == "MySQL" ]]; then
+        LOCAL_DB_SERVICE="mysql"
     fi
 }
 
@@ -498,7 +525,7 @@ fi
 COMMON_PACKAGES=(iproute2 ca-certificates curl unzip wget openssl php-cli php-common php-mysql php-curl php-mbstring)
 if [[ "$CONFIGURE_LOCAL_DB" == "1" ]]; then
     if [[ -n "$LOCAL_DB_SERVICE" ]]; then
-        info "$LOCAL_DB_LABEL existente detectado; o banco será preservado e reutilizado."
+        info "Servidor $LOCAL_DB_LABEL existente detectado; o banco do painel será verificado separadamente."
     else
         LOCAL_DB_SERVICE="mariadb"
         LOCAL_DB_LABEL="MariaDB"
@@ -720,7 +747,9 @@ ensure_database_data_dir_writable() {
 
     command -v runuser >/dev/null 2>&1 \
         || fail "A ferramenta runuser é necessária para validar o diretório do banco."
-    if runuser -u "$service_user" -- test -w "$DB_DATA_DIR"; then
+    local write_probe="$DB_DATA_DIR/.central-incidentes-write-test-$$"
+    if runuser -u "$service_user" -- touch "$write_probe" 2>/dev/null; then
+        rm -f -- "$write_probe"
         return
     fi
 
@@ -736,8 +765,9 @@ ensure_database_data_dir_writable() {
 
     chown --no-dereference "$service_user:$service_group" "$DB_DATA_DIR"
     chmod u+rwx "$DB_DATA_DIR"
-    runuser -u "$service_user" -- test -w "$DB_DATA_DIR" \
+    runuser -u "$service_user" -- touch "$write_probe" 2>/dev/null \
         || fail "O diretório continua sem permissão de escrita para $service_user."
+    rm -f -- "$write_probe"
     success "Permissão da pasta principal do banco corrigida sem alterar seu conteúdo."
 }
 
@@ -745,13 +775,16 @@ confirm_database_reset() {
     printf '\n'
     if [[ "$ORPHAN_DB_DIR" == "1" ]]; then
         printf 'A pasta residual de %s será arquivada e um banco limpo será criado.\n' "$DB_NAME"
+    elif [[ "${DB_RESOURCES_EXIST:-0}" == "1" ]]; then
+        printf 'Esta ação apaga permanentemente o banco e o usuário de %s.\n' "$DB_NAME"
     else
-        printf 'Esta ação apaga permanentemente todas as tabelas de %s.\n' "$DB_NAME"
+        printf 'Qualquer banco, usuário ou pasta residual de %s será removido antes da instalação limpa.\n' "$DB_NAME"
     fi
     printf 'Digite EXCLUIR para confirmar: '
     read -r confirmation
     [[ "$confirmation" == "EXCLUIR" ]] \
         || fail "Exclusão do banco cancelada; nenhum dado foi removido."
+    DB_RESET_CONFIRMED=1
 }
 
 archive_orphan_database_dir() {
@@ -767,13 +800,149 @@ archive_orphan_database_dir() {
     local backup_dir
     backup_dir=$(mktemp -d "$backup_base/mysql-orphan-XXXXXXXX")
     chmod 0700 "$backup_dir"
-    mv -- "$DB_SCHEMA_PATH" "$backup_dir/$DB_NAME"
+    mv -- "$DB_SCHEMA_PATH" "$backup_dir/$DB_NAME" \
+        || fail "Não foi possível arquivar a pasta residual do banco."
     success "Pasta residual preservada em $backup_dir/$DB_NAME."
+}
+
+reset_panel_database_resources() {
+    info "Excluindo somente o banco e o usuário do painel confirmados..."
+    if ! run_mysql_admin <<SQL
+DROP DATABASE IF EXISTS $DB_NAME;
+DROP USER IF EXISTS '$DB_USER'@'localhost';
+DROP USER IF EXISTS '$DB_USER'@'127.0.0.1';
+FLUSH PRIVILEGES;
+SQL
+    then
+        fail "Não foi possível excluir os recursos existentes do banco do painel."
+    fi
+
+    if [[ -e "$DB_SCHEMA_PATH" || -L "$DB_SCHEMA_PATH" ]]; then
+        ORPHAN_DB_DIR=1
+    fi
+    archive_orphan_database_dir \
+        || fail "Não foi possível concluir a limpeza da pasta residual do banco."
+}
+
+create_panel_database() {
+    DB_PASSWORD=$(openssl rand -hex 24)
+    DB_CREATE_ERROR_FILE="$WORK_DIR/database-create-error.log"
+    : > "$DB_CREATE_ERROR_FILE"
+
+    if run_mysql_admin >"$DB_CREATE_ERROR_FILE" 2>&1 <<SQL
+CREATE DATABASE $DB_NAME CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASSWORD';
+CREATE USER '$DB_USER'@'127.0.0.1' IDENTIFIED BY '$DB_PASSWORD';
+GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';
+GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'127.0.0.1';
+FLUSH PRIVILEGES;
+SQL
+    then
+        rm -f -- "$DB_CREATE_ERROR_FILE"
+        DB_CREATE_ERROR_FILE=""
+        return 0
+    fi
+
+    cat "$DB_CREATE_ERROR_FILE" >&2
+    DB_PASSWORD=""
+    return 1
+}
+
+repair_database_security_controls() {
+    [[ -n "${DB_CREATE_ERROR_FILE:-}" && -f "$DB_CREATE_ERROR_FILE" ]] || return
+    grep -Eqi 'errno: 13|permission denied' "$DB_CREATE_ERROR_FILE" || return
+
+    warn "O usuário root administra a instalação, mas o servidor do banco roda com permissões próprias."
+
+    if command -v getenforce >/dev/null 2>&1 \
+        && [[ "$(getenforce 2>/dev/null || true)" == "Enforcing" ]] \
+        && command -v restorecon >/dev/null 2>&1; then
+        if [[ "$NON_INTERACTIVE" != "1" ]] \
+            && ask_yes_no "Restaurar os contextos SELinux do diretório de dados?" "yes"; then
+            restorecon -RF "$DB_DATA_DIR"
+        fi
+    fi
+
+    command -v aa-status >/dev/null 2>&1 || return
+    aa-status --enabled >/dev/null 2>&1 || return
+    command -v apparmor_parser >/dev/null 2>&1 || return
+
+    local denial=""
+    denial=$(
+        journalctl --dmesg --since "-10 minutes" --no-pager 2>/dev/null \
+            | grep -E 'apparmor="DENIED".*(mysqld|mariadbd)' \
+            | tail -n 1 \
+            || true
+    )
+    [[ -n "$denial" ]] || return
+
+    local profile=""
+    local candidate=""
+    for candidate in /etc/apparmor.d/usr.sbin.mysqld /etc/apparmor.d/usr.sbin.mariadbd; do
+        if [[ -f "$candidate" ]] \
+            && grep -Fq "local/$(basename "$candidate")" "$candidate"; then
+            profile="$candidate"
+            break
+        fi
+    done
+    if [[ -z "$profile" ]]; then
+        warn "O AppArmor bloqueou o banco, mas nenhum perfil local compatível foi encontrado."
+        return
+    fi
+
+    warn "O AppArmor bloqueou o acesso do servidor a $DB_DATA_DIR."
+    if [[ "$NON_INTERACTIVE" == "1" ]] \
+        || ! ask_yes_no "Autorizar o perfil do banco a usar somente este diretório de dados?" "yes"; then
+        return
+    fi
+
+    local local_profile="/etc/apparmor.d/local/$(basename "$profile")"
+    install -d -o root -g root -m 0755 "$(dirname "$local_profile")"
+    touch "$local_profile"
+    chmod 0644 "$local_profile"
+    if ! grep -Fq "\"$DB_DATA_DIR/**\"" "$local_profile"; then
+        {
+            printf '\n# Central de Incidentes - diretório de dados detectado\n'
+            printf '"%s/" r,\n' "$DB_DATA_DIR"
+            printf '"%s/**" rwk,\n' "$DB_DATA_DIR"
+        } >> "$local_profile"
+    fi
+    apparmor_parser -r "$profile" \
+        || fail "Não foi possível recarregar o perfil do AppArmor."
+    success "Permissão do AppArmor atualizada somente para o diretório de dados detectado."
+}
+
+retry_database_after_failure() {
+    [[ "$NON_INTERACTIVE" != "1" ]] || return 1
+
+    printf '\n'
+    warn "O banco não foi criado. Escolha como continuar:"
+    printf '  [1] Limpar somente os recursos do painel, corrigir o acesso e tentar novamente\n'
+    printf '  [2] Continuar com credenciais manuais no wizard\n'
+    printf '  [3] Cancelar a instalação\n'
+    printf 'Escolha uma opção [1]: '
+    read -r choice
+    case "${choice:-1}" in
+        1)
+            [[ "${DB_RESET_CONFIRMED:-0}" == "1" ]] || confirm_database_reset
+            repair_database_security_controls
+            reset_panel_database_resources
+            ensure_database_data_dir_writable
+            info "Tentando criar o banco novamente..."
+            create_panel_database
+            ;;
+        2)
+            DB_MANUAL_FALLBACK_ACCEPTED=1
+            return 1
+            ;;
+        *) fail "Instalação cancelada porque o banco não pôde ser preparado." ;;
+    esac
 }
 
 DB_PASSWORD=""
 DB_PREPARED=0
 DB_MANUAL_FALLBACK_ACCEPTED=0
+DB_RESET_CONFIRMED=0
 if [[ "$INSTALL_ACTION" != "update" && "$CONFIGURE_LOCAL_DB" == "1" ]]; then
     DB_ADMIN_READY=0
     if ! systemctl enable --now "$LOCAL_DB_SERVICE" >/dev/null; then
@@ -800,14 +969,14 @@ if [[ "$INSTALL_ACTION" != "update" && "$CONFIGURE_LOCAL_DB" == "1" ]]; then
     if [[ "$DB_ADMIN_READY" == "1" ]]; then
         SHOULD_CREATE=1
         ORPHAN_DB_DIR=0
-        DB_SCHEMA_PATH=""
+        DB_DECISION_HANDLED=0
         ensure_database_data_dir_writable
+        DB_SCHEMA_PATH="$DB_DATA_DIR/$DB_NAME"
         EXISTING_DATABASE_COUNT="${EXISTING_STATE%%:*}"
         DB_RESOURCES_EXIST=0
         [[ "$EXISTING_STATE" != "0:0" ]] && DB_RESOURCES_EXIST=1
 
         if [[ "$EXISTING_DATABASE_COUNT" == "0" ]]; then
-            DB_SCHEMA_PATH="$DB_DATA_DIR/$DB_NAME"
             if [[ -e "$DB_SCHEMA_PATH" || -L "$DB_SCHEMA_PATH" ]]; then
                 ORPHAN_DB_DIR=1
                 DB_RESOURCES_EXIST=1
@@ -815,12 +984,52 @@ if [[ "$INSTALL_ACTION" != "update" && "$CONFIGURE_LOCAL_DB" == "1" ]]; then
             fi
         fi
 
-        if [[ "$DB_RESOURCES_EXIST" == "1" && "$RESET_DATABASE" == "1" \
+        if [[ "$INSTALL_ACTION" == "replace" && "$RESET_DATABASE" != "1" \
             && "$NON_INTERACTIVE" != "1" ]]; then
+            printf '\n'
+            info "Escolha como tratar o banco '$DB_NAME' nesta reinstalação:"
+            if [[ "$DB_RESOURCES_EXIST" == "1" ]]; then
+                printf '  [1] Preservar o banco encontrado e informar as credenciais no wizard\n'
+            else
+                printf '  [1] Criar o banco normalmente sem excluir outros dados\n'
+            fi
+            printf '  [2] Excluir qualquer banco e usuário do painel e criar uma instalação limpa\n'
+            printf '  [3] Não preparar o banco e informar credenciais manualmente no wizard\n'
+            printf '  [4] Cancelar\n'
+            printf 'Escolha uma opção [1]: '
+            read -r choice
+            case "${choice:-1}" in
+                1)
+                    if [[ "$DB_RESOURCES_EXIST" == "1" ]]; then
+                        SHOULD_CREATE=0
+                        DB_MANUAL_FALLBACK_ACCEPTED=1
+                        DB_NOTICE="O banco existente foi preservado. Use Banco existente e informe um usuário do MySQL ou MariaDB; não use o login do Zabbix ou do painel."
+                        warn "$DB_NOTICE"
+                    fi
+                    ;;
+                2)
+                    confirm_database_reset
+                    RESET_DATABASE=1
+                    ;;
+                3)
+                    SHOULD_CREATE=0
+                    DB_MANUAL_FALLBACK_ACCEPTED=1
+                    DB_NOTICE="A preparação automática foi ignorada. Informe no wizard um usuário do MySQL ou MariaDB com acesso ao banco desejado."
+                    warn "$DB_NOTICE"
+                    ;;
+                4) fail "Instalação cancelada; nenhum dado do banco foi removido." ;;
+                *) fail "Opção de banco inválida; nenhum dado foi removido." ;;
+            esac
+            DB_DECISION_HANDLED=1
+        fi
+
+        if [[ "$DB_RESOURCES_EXIST" == "1" && "$RESET_DATABASE" == "1" \
+            && "$NON_INTERACTIVE" != "1" && "$DB_DECISION_HANDLED" != "1" ]]; then
             confirm_database_reset
         fi
 
-        if [[ "$DB_RESOURCES_EXIST" == "1" && "$RESET_DATABASE" != "1" ]]; then
+        if [[ "$DB_RESOURCES_EXIST" == "1" && "$RESET_DATABASE" != "1" \
+            && "$DB_DECISION_HANDLED" != "1" ]]; then
             if [[ "$NON_INTERACTIVE" == "1" ]]; then
                 SHOULD_CREATE=0
                 DB_NOTICE="O banco, usuário ou diretório de $DB_NAME já existe. Use Banco existente ou execute novamente com --reset-database para recriar somente o banco do painel."
@@ -855,32 +1064,21 @@ if [[ "$INSTALL_ACTION" != "update" && "$CONFIGURE_LOCAL_DB" == "1" ]]; then
 
         if [[ "$SHOULD_CREATE" == "1" ]]; then
             if [[ "$RESET_DATABASE" == "1" ]]; then
-                info "Excluindo somente o banco e o usuário do painel confirmados..."
-                run_mysql_admin <<SQL
-DROP DATABASE IF EXISTS $DB_NAME;
-DROP USER IF EXISTS '$DB_USER'@'localhost';
-DROP USER IF EXISTS '$DB_USER'@'127.0.0.1';
-FLUSH PRIVILEGES;
-SQL
-                archive_orphan_database_dir
+                reset_panel_database_resources
             fi
 
-            DB_PASSWORD=$(openssl rand -hex 24)
             info "Criando banco e usuário exclusivos..."
-            if run_mysql_admin <<SQL
-CREATE DATABASE $DB_NAME CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASSWORD';
-CREATE USER '$DB_USER'@'127.0.0.1' IDENTIFIED BY '$DB_PASSWORD';
-GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';
-GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'127.0.0.1';
-FLUSH PRIVILEGES;
-SQL
-            then
+            if create_panel_database; then
+                DB_PREPARED=1
+            elif retry_database_after_failure; then
                 DB_PREPARED=1
             else
-                DB_PASSWORD=""
-                DB_NOTICE="A criação automática do banco falhou. Use Banco existente e informe as credenciais do MySQL ou MariaDB."
-                warn "$DB_NOTICE"
+                if [[ "$DB_MANUAL_FALLBACK_ACCEPTED" == "1" ]]; then
+                    DB_NOTICE="A criação automática do banco falhou. Informe no wizard as credenciais de um banco MySQL ou MariaDB existente."
+                    warn "$DB_NOTICE"
+                else
+                    fail "O servidor continuou recusando a criação do banco após a recuperação assistida. Consulte: journalctl -u $LOCAL_DB_SERVICE"
+                fi
             fi
         fi
     fi
