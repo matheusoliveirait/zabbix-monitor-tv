@@ -74,6 +74,8 @@ Ao substituir uma instalação existente no Linux, o instalador sempre pergunta 
 
 O instalador é executado como `root`, mas MySQL e MariaDB trabalham com o usuário próprio do serviço. Se esse processo for bloqueado por permissões, SELinux ou AppArmor, o instalador mostra uma recuperação assistida antes de tentar novamente. No AppArmor, o perfil efetivamente informado pelo kernel recebe acesso somente ao diretório de dados detectado; depois ele é recarregado e o serviço do banco é reiniciado. Qualquer exclusão exige a confirmação literal `EXCLUIR` e fica limitada ao banco, usuário e pasta residual do painel.
 
+As operações de inicialização do serviço e conexão administrativa possuem limites de tempo. Se MySQL ou MariaDB não responder, o instalador não fica parado indefinidamente: ele mostra automaticamente o estado do serviço e seus 40 eventos mais recentes. Os limites podem ser ajustados por `CENTRAL_INCIDENTES_DB_SERVICE_TIMEOUT` e `CENTRAL_INCIDENTES_DB_COMMAND_TIMEOUT`.
+
 ## Decisoes seguras do instalador
 
 ### Porta e acesso pela rede
