@@ -74,6 +74,7 @@ select:focus-visible {
 .setup-sidebar {
   position: sticky;
   top: 0;
+  min-width: 0;
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -627,11 +628,17 @@ select:focus-visible {
   white-space: nowrap;
 }
 
+.setup-platforms {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  max-width: 980px;
+  margin-bottom: 22px;
+}
+
 .command-panel {
   display: grid;
   gap: 10px;
-  max-width: 760px;
-  margin-bottom: 22px;
   padding: 18px;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -647,14 +654,20 @@ select:focus-visible {
 
 .command-panel code {
   display: block;
-  overflow-x: auto;
   padding: 11px 13px;
   border-radius: 4px;
   background: var(--surface-2);
   color: #c6d2dc;
   font-family: "Cascadia Code", Consolas, monospace;
   font-size: 12px;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 900px) {
+  .setup-platforms {
+    grid-template-columns: 1fr;
+  }
 }
 
 .finish-mark {

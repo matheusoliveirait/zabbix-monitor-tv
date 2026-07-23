@@ -73,10 +73,17 @@ header('X-Frame-Options: DENY');
             <h2>Prepare os arquivos no servidor</h2>
             <p>O assistente web precisa do arquivo temporário criado pelo instalador.</p>
           </div>
-          <div class="command-panel">
-            <span>No terminal do servidor</span>
-            <code>wget https://github.com/matheusoliveirait/zabbix-monitor-tv/releases/latest/download/install.sh</code>
-            <code>chmod +x install.sh &amp;&amp; sudo ./install.sh</code>
+          <div class="setup-platforms">
+            <div class="command-panel">
+              <span>Ubuntu ou Debian</span>
+              <code>wget https://github.com/matheusoliveirait/zabbix-monitor-tv/releases/latest/download/install.sh</code>
+              <code>chmod +x install.sh &amp;&amp; sudo ./install.sh</code>
+            </div>
+            <div class="command-panel">
+              <span>Windows PowerShell</span>
+              <code>Invoke-WebRequest https://github.com/matheusoliveirait/zabbix-monitor-tv/releases/latest/download/install-windows.ps1 -OutFile install-windows.ps1</code>
+              <code>powershell -ExecutionPolicy Bypass -File .\install-windows.ps1</code>
+            </div>
           </div>
           <p class="field-help">Depois de executar o script, recarregue esta página usando o endereço apresentado no terminal.</p>
           <button class="button primary" type="button" data-reload>Verificar novamente</button>

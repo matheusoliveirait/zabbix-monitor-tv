@@ -8,5 +8,6 @@
 .gitignore export-ignore
 backups export-ignore
 outputs export-ignore
+tests export-ignore
 work export-ignore
 assets/social-preview.png export-ignore

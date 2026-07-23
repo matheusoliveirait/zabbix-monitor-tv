@@ -40,6 +40,21 @@ jobs:
             node --check "$file"
           done < <(find . -type f -name '*.js' -not -path './work/*' -print0)
 
+      - name: Validar PowerShell
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path "./install-windows.ps1"),
+            [ref]$tokens,
+            [ref]$errors
+          ) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
+
       - name: Criar pacote e checksum
         shell: bash
         run: |
@@ -58,5 +73,6 @@ jobs:
             central-incidentes.zip.sha256 \
             install.sh \
             install-linux.sh \
+            install-windows.ps1 \
             --generate-notes \
             --title "Central de Incidentes ${GITHUB_REF_NAME}"
