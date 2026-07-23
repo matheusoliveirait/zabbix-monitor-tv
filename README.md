@@ -66,6 +66,8 @@ Se MySQL ou MariaDB já estiver instalado, o servidor existente é preservado e 
 
 Quando o acesso administrativo automático não está disponível, o instalador solicita temporariamente a senha do usuário `root` do MySQL/MariaDB. A senha não é exibida nem armazenada. Se o banco `central_incidentes` já existir, é possível preservá-lo ou excluir e recriar somente esse banco e seu usuário dedicado; os demais bancos nunca são alterados.
 
+Se uma tentativa anterior tiver deixado uma pasta `central_incidentes` que o servidor não reconhece como banco, o instalador também a detecta. Ao recriar, essa pasta residual é arquivada com permissão restrita em `/var/backups/central-incidentes/` antes da criação do banco limpo.
+
 ## Decisoes seguras do instalador
 
 ### Porta e acesso pela rede
