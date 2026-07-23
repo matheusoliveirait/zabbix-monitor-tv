@@ -80,8 +80,16 @@ grep -q "Escolha como tratar o banco.*nesta reinstalação" "$ROOT/install.sh"
 grep -q 'Excluir qualquer banco e usuário do painel e criar uma instalação limpa' "$ROOT/install.sh"
 grep -q 'Limpar somente os recursos do painel, corrigir o acesso e tentar novamente' "$ROOT/install.sh"
 grep -q 'repair_database_security_controls' "$ROOT/install.sh"
+grep -q 'find_apparmor_profile_file' "$ROOT/install.sh"
+grep -q 'acesso completo ao diretório de dados' "$ROOT/install.sh"
+grep -q 'Perfil correto do AppArmor aplicado e serviço do banco reiniciado' "$ROOT/install.sh"
+grep -q 'show_database_access_diagnostics' "$ROOT/install.sh"
 grep -q 'journalctl -u.*LOCAL_DB_SERVICE' "$ROOT/install.sh"
 grep -q 'central-incidentes-write-test' "$ROOT/install.sh"
+if grep -Eq 'chmod +0?777' "$ROOT/install.sh"; then
+    printf 'Falha: o instalador não pode liberar permissões globais no sistema.\n' >&2
+    exit 1
+fi
 
 MINT_20_OS_RELEASE="$TEMP_ROOT/mint-20-os-release"
 printf 'ID=linuxmint\nVERSION_ID="20.3"\nPRETTY_NAME="Linux Mint 20.3"\n' > "$MINT_20_OS_RELEASE"

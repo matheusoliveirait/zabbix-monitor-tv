@@ -848,6 +848,56 @@ SQL
     return 1
 }
 
+wait_for_database_admin() {
+    local attempt=""
+    for attempt in {1..30}; do
+        if read_database_state >/dev/null 2>&1; then
+            return 0
+        fi
+        sleep 1
+    done
+    return 1
+}
+
+find_apparmor_profile_file() {
+    local denial="$1"
+    local profile_name=""
+    profile_name=$(sed -nE 's/.*profile="([^"]+)".*/\1/p' <<< "$denial")
+    profile_name="${profile_name%%//*}"
+
+    if [[ "$profile_name" == /* ]]; then
+        local profile_key="${profile_name#/}"
+        profile_key="${profile_key//\//.}"
+        local exact_profile="/etc/apparmor.d/$profile_key"
+        if [[ -f "$exact_profile" ]] \
+            && grep -Fq "local/$(basename "$exact_profile")" "$exact_profile"; then
+            printf '%s' "$exact_profile"
+            return 0
+        fi
+    fi
+
+    local candidate=""
+    if [[ -n "$profile_name" ]]; then
+        for candidate in /etc/apparmor.d/usr.sbin.mysqld /etc/apparmor.d/usr.sbin.mariadbd; do
+            if [[ -f "$candidate" ]] \
+                && apparmor_parser -N "$candidate" 2>/dev/null \
+                    | grep -Fxq "$profile_name"; then
+                printf '%s' "$candidate"
+                return 0
+            fi
+        done
+    fi
+
+    for candidate in /etc/apparmor.d/usr.sbin.mysqld /etc/apparmor.d/usr.sbin.mariadbd; do
+        if [[ -f "$candidate" ]] \
+            && grep -Fq "local/$(basename "$candidate")" "$candidate"; then
+            printf '%s' "$candidate"
+            return 0
+        fi
+    done
+    return 1
+}
+
 repair_database_security_controls() {
     [[ -n "${DB_CREATE_ERROR_FILE:-}" && -f "$DB_CREATE_ERROR_FILE" ]] || return 0
     grep -Eqi 'errno: 13|permission denied' "$DB_CREATE_ERROR_FILE" || return 0
@@ -877,14 +927,7 @@ repair_database_security_controls() {
     [[ -n "$denial" ]] || return 0
 
     local profile=""
-    local candidate=""
-    for candidate in /etc/apparmor.d/usr.sbin.mysqld /etc/apparmor.d/usr.sbin.mariadbd; do
-        if [[ -f "$candidate" ]] \
-            && grep -Fq "local/$(basename "$candidate")" "$candidate"; then
-            profile="$candidate"
-            break
-        fi
-    done
+    profile=$(find_apparmor_profile_file "$denial" 2>/dev/null || true)
     if [[ -z "$profile" ]]; then
         warn "O AppArmor bloqueou o banco, mas nenhum perfil local compatível foi encontrado."
         return 0
@@ -900,16 +943,40 @@ repair_database_security_controls() {
     install -d -o root -g root -m 0755 "$(dirname "$local_profile")"
     touch "$local_profile"
     chmod 0644 "$local_profile"
-    if ! grep -Fq "\"$DB_DATA_DIR/**\"" "$local_profile"; then
+    if ! grep -Fq "# Central de Incidentes - acesso completo ao diretório de dados" "$local_profile"; then
         {
-            printf '\n# Central de Incidentes - diretório de dados detectado\n'
-            printf '"%s/" r,\n' "$DB_DATA_DIR"
-            printf '"%s/**" rwk,\n' "$DB_DATA_DIR"
+            printf '\n# Central de Incidentes - acesso completo ao diretório de dados\n'
+            printf '"%s/" rw,\n' "$DB_DATA_DIR"
+            printf '"%s/**" rwkl,\n' "$DB_DATA_DIR"
         } >> "$local_profile"
     fi
     apparmor_parser -r "$profile" \
         || fail "Não foi possível recarregar o perfil do AppArmor."
-    success "Permissão do AppArmor atualizada somente para o diretório de dados detectado."
+    systemctl restart "$LOCAL_DB_SERVICE" \
+        || fail "O perfil foi atualizado, mas o serviço $LOCAL_DB_SERVICE não reiniciou."
+    wait_for_database_admin \
+        || fail "O serviço $LOCAL_DB_SERVICE reiniciou, mas não voltou a aceitar conexões."
+    success "Perfil correto do AppArmor aplicado e serviço do banco reiniciado."
+}
+
+show_database_access_diagnostics() {
+    printf '\nDiagnóstico do acesso ao banco:\n' >&2
+    printf '  Serviço: %s (%s)\n' "$LOCAL_DB_SERVICE" "$LOCAL_DB_LABEL" >&2
+    printf '  Diretório: %s\n' "$DB_DATA_DIR" >&2
+    stat -c '  Permissão: %U:%G, modo %a' "$DB_DATA_DIR" >&2 || true
+    if command -v namei >/dev/null 2>&1; then
+        namei -l "$DB_DATA_DIR/$DB_NAME" >&2 || true
+    fi
+    local latest_denial=""
+    latest_denial=$(
+        journalctl --dmesg --since "-10 minutes" --no-pager 2>/dev/null \
+            | grep -E 'apparmor="DENIED".*(mysqld|mariadbd)' \
+            | tail -n 1 \
+            || true
+    )
+    if [[ -n "$latest_denial" ]]; then
+        printf '  Último bloqueio AppArmor: %s\n' "$latest_denial" >&2
+    fi
 }
 
 retry_database_after_failure() {
@@ -1077,6 +1144,7 @@ if [[ "$INSTALL_ACTION" != "update" && "$CONFIGURE_LOCAL_DB" == "1" ]]; then
                     DB_NOTICE="A criação automática do banco falhou. Informe no wizard as credenciais de um banco MySQL ou MariaDB existente."
                     warn "$DB_NOTICE"
                 else
+                    show_database_access_diagnostics
                     fail "O servidor continuou recusando a criação do banco após a recuperação assistida. Consulte: journalctl -u $LOCAL_DB_SERVICE"
                 fi
             fi
