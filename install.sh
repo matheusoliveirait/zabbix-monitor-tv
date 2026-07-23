@@ -17,6 +17,8 @@ DB_USER="${CENTRAL_INCIDENTES_DB_USER:-central_incidentes}"
 INSTALL_ACTION="${CENTRAL_INCIDENTES_INSTALL_ACTION:-}"
 RESET_DATABASE="${CENTRAL_INCIDENTES_RESET_DATABASE:-0}"
 OPEN_FIREWALL="${CENTRAL_INCIDENTES_OPEN_FIREWALL:-0}"
+DB_COMMAND_TIMEOUT="${CENTRAL_INCIDENTES_DB_COMMAND_TIMEOUT:-8}"
+DB_SERVICE_TIMEOUT="${CENTRAL_INCIDENTES_DB_SERVICE_TIMEOUT:-45}"
 TEST_MODE="${CENTRAL_INCIDENTES_TEST_MODE:-0}"
 TEST_APT_UPDATE_OUTPUT="${CENTRAL_INCIDENTES_TEST_APT_UPDATE_OUTPUT:-}"
 TEST_APT_SIMULATION_OUTPUT="${CENTRAL_INCIDENTES_TEST_APT_SIMULATION_OUTPUT:-}"
@@ -167,7 +169,9 @@ detect_local_database_server() {
 
     if command -v mysql >/dev/null 2>&1; then
         server_version=$(
-            env -u MYSQL_PWD mysql --protocol=socket -uroot --batch --skip-column-names \
+            env -u MYSQL_PWD timeout --foreground --kill-after=2s "${DB_COMMAND_TIMEOUT}s" \
+                mysql --connect-timeout="$DB_COMMAND_TIMEOUT" --protocol=socket -uroot \
+                --batch --skip-column-names \
                 --execute="SELECT CONCAT(@@version, ' ', @@version_comment);" 2>/dev/null \
                 || true
         )
@@ -372,9 +376,12 @@ if [[ "$TEST_MODE" != "1" || "$TEST_VALIDATE_OS" == "1" ]]; then
 fi
 if [[ "$TEST_MODE" != "1" ]]; then
     command -v apt-get >/dev/null 2>&1 || fail "O gerenciador de pacotes APT não foi encontrado."
+    command -v timeout >/dev/null 2>&1 || fail "A ferramenta timeout do coreutils não foi encontrada."
 fi
 [[ "$DB_NAME" =~ ^[A-Za-z0-9_]+$ ]] || fail "Nome de banco inválido."
 [[ "$DB_USER" =~ ^[A-Za-z0-9_]+$ ]] || fail "Usuário de banco inválido."
+[[ "$DB_COMMAND_TIMEOUT" =~ ^[1-9][0-9]*$ ]] || fail "Timeout de conexão com o banco inválido."
+[[ "$DB_SERVICE_TIMEOUT" =~ ^[1-9][0-9]*$ ]] || fail "Timeout do serviço de banco inválido."
 [[ "$SERVER_NAME" =~ ^[_A-Za-z0-9.-]+$ ]] || fail "Nome de servidor inválido."
 [[ "$INSTALL_DIR" = /* && "$INSTALL_DIR" != "/" ]] || fail "Use um diretório absoluto de instalação."
 [[ "$(dirname "$INSTALL_DIR")" != "/" ]] || fail "Use uma subpasta dedicada, não um diretório principal do sistema."
@@ -710,10 +717,19 @@ fi
 MYSQL_ADMIN_PASSWORD=""
 run_mysql_admin() {
     if [[ -n "$MYSQL_ADMIN_PASSWORD" ]]; then
-        MYSQL_PWD="$MYSQL_ADMIN_PASSWORD" mysql --protocol=socket -uroot "$@"
+        MYSQL_PWD="$MYSQL_ADMIN_PASSWORD" timeout --foreground --kill-after=2s \
+            "${DB_COMMAND_TIMEOUT}s" mysql --connect-timeout="$DB_COMMAND_TIMEOUT" \
+            --protocol=socket -uroot "$@"
     else
-        env -u MYSQL_PWD mysql --protocol=socket -uroot "$@"
+        env -u MYSQL_PWD timeout --foreground --kill-after=2s \
+            "${DB_COMMAND_TIMEOUT}s" mysql --connect-timeout="$DB_COMMAND_TIMEOUT" \
+            --protocol=socket -uroot "$@"
     fi
+}
+
+run_database_systemctl() {
+    timeout --foreground --kill-after=5s "${DB_SERVICE_TIMEOUT}s" \
+        systemctl "$@"
 }
 
 read_database_state() {
@@ -850,13 +866,24 @@ SQL
 
 wait_for_database_admin() {
     local attempt=""
-    for attempt in {1..30}; do
+    for attempt in {1..12}; do
         if read_database_state >/dev/null 2>&1; then
             return 0
         fi
         sleep 1
     done
     return 1
+}
+
+show_database_service_diagnostics() {
+    printf '\nDiagnóstico do serviço de banco:\n' >&2
+    timeout --foreground --kill-after=2s 10s \
+        systemctl status "$LOCAL_DB_SERVICE" --no-pager --full >&2 \
+        || true
+    printf '\nÚltimos eventos do serviço:\n' >&2
+    timeout --foreground --kill-after=2s 10s \
+        journalctl -u "$LOCAL_DB_SERVICE" -n 40 --no-pager >&2 \
+        || true
 }
 
 find_apparmor_profile_file() {
@@ -952,7 +979,7 @@ repair_database_security_controls() {
     fi
     apparmor_parser -r "$profile" \
         || fail "Não foi possível recarregar o perfil do AppArmor."
-    systemctl restart "$LOCAL_DB_SERVICE" \
+    run_database_systemctl restart "$LOCAL_DB_SERVICE" \
         || fail "O perfil foi atualizado, mas o serviço $LOCAL_DB_SERVICE não reiniciou."
     wait_for_database_admin \
         || fail "O serviço $LOCAL_DB_SERVICE reiniciou, mas não voltou a aceitar conexões."
@@ -1012,25 +1039,32 @@ DB_MANUAL_FALLBACK_ACCEPTED=0
 DB_RESET_CONFIRMED=0
 if [[ "$INSTALL_ACTION" != "update" && "$CONFIGURE_LOCAL_DB" == "1" ]]; then
     DB_ADMIN_READY=0
-    if ! systemctl enable --now "$LOCAL_DB_SERVICE" >/dev/null; then
+    info "Iniciando o serviço $LOCAL_DB_SERVICE (limite de ${DB_SERVICE_TIMEOUT}s)..."
+    if ! run_database_systemctl enable --now "$LOCAL_DB_SERVICE" >/dev/null; then
+        show_database_service_diagnostics
         DB_NOTICE="Não foi possível iniciar o $LOCAL_DB_LABEL. Use Banco existente e informe credenciais válidas."
         warn "$DB_NOTICE"
-    elif EXISTING_STATE=$(read_database_state 2>/dev/null); then
-        DB_ADMIN_READY=1
-    elif [[ "$NON_INTERACTIVE" != "1" ]]; then
-        printf 'Senha do usuário root do %s (não será armazenada): ' "$LOCAL_DB_LABEL"
-        IFS= read -r -s MYSQL_ADMIN_PASSWORD
-        printf '\n'
+    else
+        info "Testando o acesso administrativo ao $LOCAL_DB_LABEL..."
         if EXISTING_STATE=$(read_database_state 2>/dev/null); then
             DB_ADMIN_READY=1
+        elif [[ "$NON_INTERACTIVE" != "1" ]]; then
+            printf 'Senha do usuário root do %s (não será armazenada): ' "$LOCAL_DB_LABEL"
+            IFS= read -r -s MYSQL_ADMIN_PASSWORD
+            printf '\n'
+            if EXISTING_STATE=$(read_database_state 2>/dev/null); then
+                DB_ADMIN_READY=1
+            else
+                MYSQL_ADMIN_PASSWORD=""
+                show_database_service_diagnostics
+                DB_NOTICE="Não foi possível administrar o $LOCAL_DB_LABEL. Use Banco existente e informe credenciais válidas."
+                warn "$DB_NOTICE"
+            fi
         else
-            MYSQL_ADMIN_PASSWORD=""
-            DB_NOTICE="Não foi possível administrar o $LOCAL_DB_LABEL. Use Banco existente e informe credenciais válidas."
+            show_database_service_diagnostics
+            DB_NOTICE="O acesso administrativo ao $LOCAL_DB_LABEL foi recusado. Use Banco existente e informe credenciais válidas."
             warn "$DB_NOTICE"
         fi
-    else
-        DB_NOTICE="O acesso administrativo ao $LOCAL_DB_LABEL foi recusado. Use Banco existente e informe credenciais válidas."
-        warn "$DB_NOTICE"
     fi
 
     if [[ "$DB_ADMIN_READY" == "1" ]]; then
